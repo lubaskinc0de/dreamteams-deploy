@@ -24,6 +24,8 @@ spec:
           value: rustfsadmin
         - name: secretEnv.APP_S3_SECRET_KEY
           value: rustfsadmin
+        - name: secretEnv.APP_SUPERUSER_PWD_HASH
+          value: $argon2id$v=19$m=65536,t=3,p=4$WtB09we21GMOQ8kjBOFnrQ$ZU8lTm3cNPhFe90PGfH5sliQvzlbZf6DKztbxNlOl2s
         - name: configFile
           value: |
             [auth]

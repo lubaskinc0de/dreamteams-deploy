@@ -176,5 +176,6 @@ secretEnv:
   APP_DB_PASSWORD: ""
   APP_S3_ACCESS_KEY: ""
   APP_S3_SECRET_KEY: ""
+  APP_SUPERUSER_PWD_HASH: ""
 
 configFile: ""
