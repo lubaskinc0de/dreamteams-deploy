@@ -7,7 +7,7 @@ imagePullSecrets:
   - name: ghcr-secret
 
 env:
-  APP_DB_HOST: "dreamteams-db"
+  APP_DB_HOST: "dreamteams-postgres-postgresql"
   APP_DB_PORT: "5432"
   APP_DB_NAME: "postgres"
 

@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1   # ArgoCD's API group                                      
+kind: Application                   # The object type                                        
+metadata:                                                                                    
+  name: dreamteams-api     # Name shown in ArgoCD UI
+  namespace: argocd                 # Always argocd — that's where ArgoCD lives
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # Deploy order: 0 = first
+spec:
+  project: default                  # ArgoCD project (default = no restrictions)
+
+  source:
+    repoURL: git@github.com:lubaskinc0de/dreamteams-deploy.git  # Your deploy repo
+    targetRevision: HEAD            # Always use latest commit on main branch
+    path: dreamteams_api     # Path to the chart inside the repo
+    helm:
+      valueFiles:
+        - values.yaml               # Which values file to use
+      parameters:
+        - name: secretEnv.APP_DB_USER
+          value: postgres
+        - name: secretEnv.APP_DB_PASSWORD
+          value: postgres
+        - name: secretEnv.APP_S3_ACCESS_KEY
+          value: rustfsadmin
+        - name: secretEnv.APP_S3_SECRET_KEY
+          value: rustfsadmin
+  destination:
+    server: https://kubernetes.default.svc  # Deploy to the local cluster (minikube)
+    namespace: dreamteams           # Which namespace to deploy into
+
+  syncPolicy:
+    automated:
+      prune: true      # Delete k8s objects that are removed from the chart
+      selfHeal: true   # Re-sync if someone manually changes something in the cluster
+    syncOptions:
+      - CreateNamespace=true  # Create the namespace if it doesn't exist
