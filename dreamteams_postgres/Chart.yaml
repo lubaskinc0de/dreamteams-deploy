@@ -1,0 +1,11 @@
+apiVersion: v2                                                                               
+name: dreamteams-postgres                                                                    
+description: PostgreSQL for DreamTeams                                                       
+type: application                                                                            
+version: 0.1.0                                                                               
+appVersion: "17"                                                                             
+                                                                                              
+dependencies:                                                                                
+  - name: postgresql                                                                         
+    version: "~18.5.5"                                                                         
+    repository: https://charts.bitnami.com/bitnami

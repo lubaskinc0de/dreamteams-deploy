@@ -1,0 +1,16 @@
+image:
+  repository: ghcr.io/lubaskinc0de/dreamteams
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+env:
+  APP_DB_HOST: "dreamteams-db"
+  APP_DB_PORT: "5432"
+  APP_DB_NAME: "postgres"
+
+secretEnv:
+  APP_DB_USER: ""
+  APP_DB_PASSWORD: ""

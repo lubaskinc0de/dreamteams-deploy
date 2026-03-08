@@ -1,0 +1,11 @@
+apiVersion: v2
+name: dreamteams-rustfs
+description: S3-compatible storage for DreamTeams
+type: application
+version: 0.1.0
+appVersion: "1.0.0-alpha.85"
+
+dependencies:
+  - name: rustfs
+    version: "~0.0.85"
+    repository: https://charts.rustfs.com/

@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migrations-{{ .Chart.AppVersion | replace "." "-" }}
+  labels:
+    app.kubernetes.io/name: dreamteams-migrations
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.37
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z {{ .Values.env.APP_DB_HOST }} {{ .Values.env.APP_DB_PORT }}; do
+                echo "Waiting for database..."
+                sleep 2
+              done
+      containers:
+        - name: migrations
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - dreamteams
+            - migrations
+            - apply
+          env:
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range $key, $value := .Values.secretEnv }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-migrations-secret
+                  key: {{ $key }}
+            {{- end }}

@@ -1,0 +1,18 @@
+rustfs:
+  mode:
+    standalone:
+      enabled: true
+    distributed:
+      enabled: false
+  secret:
+    rustfs:
+      access_key: ""
+      secret_key: ""
+  storageclass:
+    name: standard  # minikube default storageclass
+    dataStorageSize: 1Gi
+    logStorageSize: 256Mi
+  ingress:
+    enabled: false
+  service:
+    type: ClusterIP
