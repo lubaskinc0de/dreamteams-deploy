@@ -24,6 +24,27 @@ spec:
           value: rustfsadmin
         - name: secretEnv.APP_S3_SECRET_KEY
           value: rustfsadmin
+        - name: configFile
+          value: |
+            [auth]
+            user_id_header = "X-Auth-User"
+            user_email_header = "X-Auth-User-Email"
+            access_token_header = "X-Access-Token"
+            access_token_alg = "RS256"
+            allow_unverified_email = true
+
+            [tracing]
+            trace_id_header = "X-Trace-Id"
+            trace_id_required = false
+
+            [cors]
+            allow_origins = ["http://localhost:3001"]
+            allow_credentials=true
+            allow_methods=["*"]
+            allow_headers=["*"]
+
+            [api]
+            root_path = "/api"
   destination:
     server: https://kubernetes.default.svc  # Deploy to the local cluster (minikube)
     namespace: dreamteams           # Which namespace to deploy into
