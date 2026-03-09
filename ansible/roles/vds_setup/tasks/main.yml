@@ -1,0 +1,92 @@
+# Update apt package index and upgrade all installed packages to latest versions.            
+# upgrade: dist also upgrades kernel and handles dependency changes.                       
+- name: Update and upgrade packages                                                          
+  apt:                                                                                       
+    update_cache: yes
+    upgrade: dist
+
+# Install tools we need: curl/ca-certificates for downloads,
+# git for cloning repos, ufw for firewall, htop for monitoring.
+- name: Install essential packages
+  apt:
+    name:
+      - curl
+      - git
+      - ufw
+      - ca-certificates
+      - htop
+    state: present
+
+# Create a non-root user that will own and manage the cluster.
+# Using root for day-to-day operations is bad practice.
+- name: Create cluster management user
+  user:
+    name: "{{ cluster_user }}"
+    shell: /bin/bash
+    create_home: yes
+    state: present
+
+# Add your local SSH public key to the new user's authorized_keys.
+# This is how you'll SSH in as that user.
+- name: Add SSH public key for cluster user
+  authorized_key:
+    user: "{{ cluster_user }}"
+    key: "{{ ssh_public_key }}"
+    state: present
+
+# Give the cluster user passwordless sudo so they can run kubectl,
+# helm, and other privileged commands without entering a password.
+- name: Grant passwordless sudo to cluster user
+  copy:
+    dest: "/etc/sudoers.d/{{ cluster_user }}"
+    content: "{{ cluster_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    mode: '0440'
+    validate: visudo -cf %s
+
+# Set UFW default: block all incoming connections, allow all outgoing.
+- name: Set UFW default policies
+  ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: incoming, policy: deny }
+    - { direction: outgoing, policy: allow }
+
+# Open only the ports we actually need.
+- name: Allow required ports through UFW
+  ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: tcp
+    comment: "{{ item.comment }}"
+  loop:
+    - { port: "22",   comment: "SSH" }
+    - { port: "80",   comment: "HTTP - Traefik" }
+    - { port: "443",  comment: "HTTPS - Traefik" }
+    - { port: "6443", comment: "k3s API server" }
+
+# Enable UFW. logging: on writes blocked connection attempts to syslog.
+- name: Enable UFW
+  ufw:
+    state: enabled
+    logging: on
+
+# Disable SSH password login — keys only from now on.
+# Make sure your SSH key is in authorized_keys before this runs.
+- name: Disable SSH password authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PasswordAuthentication"
+    line: "PasswordAuthentication no"
+    state: present
+  notify: Restart sshd
+
+# Allow root login only via SSH key, not password.
+# prohibit-password means: root can use keys but not passwords.
+- name: Disable root password login
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PermitRootLogin"
+    line: "PermitRootLogin prohibit-password"
+    state: present
+  notify: Restart sshd

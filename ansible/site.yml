@@ -1,8 +1,15 @@
-# Step 1: install k3s on all nodes using the official k3s-ansible collection
+# Step 1: harden the OS, create cluster user, configure firewall.
+# Runs as root since the cluster user doesn't exist yet.
+- name: Setup VDS
+  hosts: server
+  roles:
+    - vds_setup
+
+# Step 2: install k3s using the official k3s-ansible collection.
 - name: Setup k3s cluster
   ansible.builtin.import_playbook: k3s.orchestration.site
 
-# Step 2: bootstrap ArgoCD, secrets, and deploy apps
+# Step 3: bootstrap ArgoCD and deploy all applications.
 - name: Bootstrap applications
   hosts: server
   roles:

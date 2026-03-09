@@ -15,13 +15,31 @@ local-apply:
     kubectl apply -f apps/
     kubectl apply -f local/secrets.yaml
 
+# Re-login to ArgoCD (token expires after 24h)
+argocd-login:
+    #!/usr/bin/env bash
+    PASSWORD=$(kubectl get secret argocd-initial-admin-secret \
+        -n {{argocd_namespace}} -o jsonpath="{.data.password}" | base64 -d)
+    argocd login localhost --username admin --password "$PASSWORD" \
+        --insecure {{argocd_flags}}
+
 # Sync all ArgoCD apps
 local-sync:
-    argocd app sync --all {{argocd_flags}}
+    argocd app sync sealed-secrets dreamteams-secrets dreamteams-postgres \
+        dreamteams-redis dreamteams-rustfs dreamteams-migrations \
+        dreamteams-oauth2proxy dreamteams-api dreamteams-ingress \
+        {{argocd_flags}}
 
 # Show status of all apps
 local-status:
     argocd app list {{argocd_flags}}
+
+local-run:
+    just local-apply
+    just apps-apply
+    just argocd-open
+    kubectl port-forward svc/traefik 80:80 -n traefik
+
 
 # ─── Prod ─────────────────────────────────────────────────────────────────────
 

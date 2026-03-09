@@ -1,0 +1,6 @@
+# Restart sshd to apply config changes.
+# This runs once at the end even if notified multiple times.
+- name: Restart sshd
+  service:
+    name: sshd
+    state: restarted

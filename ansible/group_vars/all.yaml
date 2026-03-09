@@ -13,5 +13,9 @@ app_namespace: dreamteams
 # Your deploy repo (ArgoCD watches this)
 deploy_repo: git@github.com:lubaskinc0de/dreamteams-deploy.git
 
-# PostgreSQL database name
-argocd_db_name: postgres
+# Linux user created for managing the k3s cluster.
+cluster_user: deploy
+
+# Your local SSH public key — added to the cluster user's authorized_keys.
+# Get it with: cat ~/.ssh/id_ed25519.pub
+ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAYd/QhHYQRdN/STbkfam11ZfAcKQv8yrrIWATGj5yQY structnull@yandex.ru"
