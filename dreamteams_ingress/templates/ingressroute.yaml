@@ -1,0 +1,31 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dreamteams
+  namespace: dreamteams
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`{{ .Values.host }}`) && PathPrefix(`/api`)
+      kind: Rule
+      middlewares:
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+      services:
+        - name: dreamteams-api
+          port: 5000
+
+    - match: Host(`{{ .Values.host }}`) && PathPrefix(`/oauth2`)
+      kind: Rule
+      services:
+        - name: dreamteams-oauth2proxy-oauth2-proxy
+          port: 8000
+
+    - match: Host(`{{ .Values.host }}`) && PathPrefix(`/s3`)
+      kind: Rule
+      services:
+        - name: dreamteams-rustfs-svc
+          port: 9000

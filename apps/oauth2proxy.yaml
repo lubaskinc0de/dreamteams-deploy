@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1                                                             
+kind: Application                                                                            
+metadata:                                                                                    
+  name: dreamteams-oauth2proxy                                                               
+  namespace: argocd                                                                          
+  annotations:                                                                               
+    argocd.argoproj.io/sync-wave: "2"                                                        
+spec:                                                                                        
+  project: default                                                                           
+  source:
+    repoURL: git@github.com:lubaskinc0de/dreamteams-deploy.git
+    targetRevision: HEAD
+    path: dreamteams_oauth2proxy
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: oauth2-proxy.config.clientID
+          value: "2d2a0213-e95e-472d-b199-5719555f6df2"
+        - name: oauth2-proxy.config.clientSecret
+          value: "sJs4JKYGu84PyLtDdyeTfpJU8IXlLZdJ"
+        - name: oauth2-proxy.config.cookieSecret
+          value: "z2VpXUQxfDgXzQQwIEST3XTbTDosjHJa"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dreamteams
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

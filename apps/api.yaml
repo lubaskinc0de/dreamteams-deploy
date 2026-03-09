@@ -4,7 +4,7 @@ metadata:
   name: dreamteams-api     # Name shown in ArgoCD UI
   namespace: argocd                 # Always argocd — that's where ArgoCD lives
   annotations:
-    argocd.argoproj.io/sync-wave: "3"  # Deploy order: 0 = first
+    argocd.argoproj.io/sync-wave: "2"  # Deploy order: 0 = first
 spec:
   project: default                  # ArgoCD project (default = no restrictions)
 
@@ -29,9 +29,9 @@ spec:
         - name: configFile
           value: |
             [auth]
-            user_id_header = "X-Auth-User"
-            user_email_header = "X-Auth-User-Email"
-            access_token_header = "X-Access-Token"
+            user_id_header = "X-Auth-Request-User"
+            user_email_header = "X-Auth-Request-Email"
+            access_token_header = "X-Auth-Request-Access-Token"
             access_token_alg = "RS256"
             allow_unverified_email = true
 

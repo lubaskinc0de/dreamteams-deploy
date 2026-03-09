@@ -1,0 +1,11 @@
+apiVersion: v2                                                                               
+name: dreamteams-oauth2proxy                                                         
+description: OAuth2 Proxy for DreamTeams                                                     
+type: application                                                                          
+version: 0.1.0                                                                               
+appVersion: "7.11.0"                                                                         
+                                                                                              
+dependencies:                                                                                
+  - name: oauth2-proxy                                                                       
+    version: "~7.12"                                                                         
+    repository: https://oauth2-proxy.github.io/manifests

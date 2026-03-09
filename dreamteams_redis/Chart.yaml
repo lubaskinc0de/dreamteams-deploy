@@ -1,0 +1,11 @@
+apiVersion: v2
+name: dreamteams-redis
+description: Redis for DreamTeams
+type: application
+version: 0.1.0
+appVersion: "7.0"
+
+dependencies:
+  - name: redis
+    version: "~21.2"
+    repository: https://charts.bitnami.com/bitnami

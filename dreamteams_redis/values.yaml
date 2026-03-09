@@ -1,0 +1,8 @@
+redis:
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 256Mi
+  replica:
+    replicaCount: 0
