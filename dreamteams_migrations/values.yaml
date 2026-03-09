@@ -14,3 +14,5 @@ env:
 secretEnv:
   APP_DB_USER: ""
   APP_DB_PASSWORD: ""
+
+externalSecret: false
