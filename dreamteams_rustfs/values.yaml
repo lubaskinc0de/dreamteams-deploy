@@ -5,9 +5,7 @@ rustfs:
     distributed:
       enabled: false
   secret:
-    rustfs:
-      access_key: ""
-      secret_key: ""
+    existingSecret: dreamteams-rustfs-secret
   storageclass:
     name: standard  # minikube default storageclass
     dataStorageSize: 1Gi

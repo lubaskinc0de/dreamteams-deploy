@@ -1,0 +1,17 @@
+# k3s version to install on the server                                                     
+k3s_version: "v1.32.2+k3s1"                                                                  
+                                                                                              
+# ArgoCD version to install                                                                  
+argocd_version: "v2.14.3"                                                                    
+                                                                                              
+# Kubernetes namespace where ArgoCD lives
+argocd_namespace: argocd
+
+# Kubernetes namespace where your app services run
+app_namespace: dreamteams
+
+# Your deploy repo (ArgoCD watches this)
+deploy_repo: git@github.com:lubaskinc0de/dreamteams-deploy.git
+
+# PostgreSQL database name
+argocd_db_name: postgres

@@ -1,0 +1,9 @@
+# Step 1: install k3s on all nodes using the official k3s-ansible collection
+- name: Setup k3s cluster
+  ansible.builtin.import_playbook: k3s.orchestration.site
+
+# Step 2: bootstrap ArgoCD, secrets, and deploy apps
+- name: Bootstrap applications
+  hosts: server
+  roles:
+    - argocd

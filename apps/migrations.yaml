@@ -16,10 +16,8 @@ spec:
       valueFiles:
         - values.yaml               # Which values file to use
       parameters:
-        - name: secretEnv.APP_DB_USER
-          value: postgres
-        - name: secretEnv.APP_DB_PASSWORD
-          value: postgres
+        - name: externalSecret
+          value: "true"
   destination:
     server: https://kubernetes.default.svc  # Deploy to the local cluster (minikube)
     namespace: dreamteams           # Which namespace to deploy into

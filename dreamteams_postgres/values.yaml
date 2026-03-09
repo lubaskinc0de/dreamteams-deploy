@@ -1,7 +1,10 @@
 postgresql:
-  auth:
+  auth:                                                                                      
+    existingSecret: dreamteams-postgres-secret                                               
+    secretKeys:                                                                              
+      adminPasswordKey: postgres-password
+      userPasswordKey: password
     username: postgres
-    password: ""
     database: postgres
   primary:
     persistence:

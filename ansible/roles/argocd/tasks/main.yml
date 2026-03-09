@@ -1,0 +1,116 @@
+# Download and install Helm package manager.
+# creates: makes this idempotent — skips if helm is already installed.
+- name: Install Helm
+  shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+
+# Install ArgoCD CLI so we can interact with ArgoCD from the server.
+- name: Install ArgoCD CLI
+  get_url:
+    url: "https://github.com/argoproj/argo-cd/releases/download/{{ argocd_version }}/argocd-linux-amd64"
+    dest: /usr/local/bin/argocd
+    mode: '0755'
+
+# Create the argocd namespace where ArgoCD will be installed.
+# --dry-run=client -o yaml | kubectl apply -f - is the idempotent way to create a namespace.
+# It won't fail if the namespace already exists.
+- name: Create argocd namespace
+  shell: kubectl create namespace {{ argocd_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+
+# Create the app namespace where your services will be deployed.
+- name: Create app namespace
+  shell: kubectl create namespace {{ app_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+
+# Add the ArgoCD Helm repository so we can install it.
+- name: Add ArgoCD Helm repo
+  shell: helm repo add argo https://argoproj.github.io/argo-helm && helm repo update
+
+# Install ArgoCD using Helm.
+# --wait blocks until all ArgoCD pods are running.
+# failed_when handles the case where ArgoCD is already installed — not an error.
+- name: Install ArgoCD
+  shell: >
+    helm install argocd argo/argo-cd
+    --namespace {{ argocd_namespace }}
+    --version {{ argocd_version }}
+    --set server.service.type=ClusterIP
+    --wait
+  register: argocd_install
+  failed_when: argocd_install.rc != 0 and 'already exists' not in argocd_install.stderr
+
+# Wait until ArgoCD server deployment is fully available.
+- name: Wait for ArgoCD server to be ready
+  shell: kubectl wait --for=condition=available deployment/argocd-server -n {{ argocd_namespace }} --timeout=120s
+  retries: 3
+  delay: 15
+
+# Get the initial admin password that ArgoCD generates on first install.
+# register: saves the output into a variable we use in the next task.
+- name: Get ArgoCD admin password
+  shell: kubectl get secret argocd-initial-admin-secret -n {{ argocd_namespace }} -o jsonpath="{.data.password}" | base64 -d
+  register: argocd_password
+
+# Log in to ArgoCD CLI using the admin password.
+# --port-forward makes the CLI connect via kubectl port-forward internally.
+# --insecure skips TLS certificate verification.
+- name: Login to ArgoCD
+  shell: >
+    argocd login localhost
+    --username admin
+    --password "{{ argocd_password.stdout }}"
+    --insecure
+    --port-forward
+    --port-forward-namespace {{ argocd_namespace }}
+
+# Create the GHCR image pull secret so k8s can pull your private Docker images.
+# --dry-run=client -o yaml | kubectl apply -f - makes this idempotent.
+- name: Create GHCR image pull secret
+  shell: >
+    kubectl create secret docker-registry ghcr-secret
+    --docker-server=ghcr.io
+    --docker-username={{ ghcr_username }}
+    --docker-password={{ ghcr_token }}
+    --namespace {{ app_namespace }}
+    --dry-run=client -o yaml | kubectl apply -f -
+
+# Write the SSH private key to a temp file so ArgoCD and git can use it.
+# mode 0600 means only the owner can read it (required for SSH keys).
+- name: Copy SSH deploy key
+  copy:
+    content: "{{ ssh_private_key }}"
+    dest: /tmp/argocd-deploy-key
+    mode: '0600'
+
+# Clone the deploy repo so we can apply the apps/ directory.
+- name: Clone deploy repo
+  git:
+    repo: "{{ deploy_repo }}"
+    dest: /tmp/dreamteams-deploy
+    key_file: /tmp/argocd-deploy-key
+    accept_hostkey: yes
+
+# Add the deploy repo to ArgoCD using the SSH key.
+# ArgoCD stores the key internally and uses it to watch the repo for changes.
+- name: Add deploy repo to ArgoCD
+  shell: >
+    argocd repo add {{ deploy_repo }}
+    --ssh-private-key-path /tmp/argocd-deploy-key
+    --insecure-skip-server-verification
+    --port-forward
+    --port-forward-namespace {{ argocd_namespace }}
+
+# Remove the SSH key from disk — ArgoCD has stored it internally, no longer needed.
+- name: Remove SSH deploy key from disk
+  file:
+    path: /tmp/argocd-deploy-key
+    state: absent
+
+# Apply all ArgoCD Application manifests — this tells ArgoCD to start
+# managing and deploying your Helm charts.
+- name: Apply ArgoCD applications
+  shell: kubectl apply -f /tmp/dreamteams-deploy/apps/
+
+# Secrets are managed via Sealed Secrets — the SealedSecret manifests in
+# sealed-secrets/local/ (or prod/) are applied by ArgoCD automatically.
+# No manual secret injection needed here.

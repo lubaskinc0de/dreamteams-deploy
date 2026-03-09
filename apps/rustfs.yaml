@@ -16,10 +16,8 @@ spec:
       valueFiles:
         - values.yaml               # Which values file to use
       parameters:
-        - name: rustfs.secret.rustfs.access_key
-          value: rustfsadmin
-        - name: rustfs.secret.rustfs.secret_key
-          value: rustfsadmin
+        - name: externalSecret
+          value: "true"
   destination:
     server: https://kubernetes.default.svc  # Deploy to the local cluster (minikube)
     namespace: dreamteams           # Which namespace to deploy into

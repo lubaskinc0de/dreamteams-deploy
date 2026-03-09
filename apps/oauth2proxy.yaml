@@ -15,12 +15,8 @@ spec:
       valueFiles:
         - values.yaml
       parameters:
-        - name: oauth2-proxy.config.clientID
-          value: "2d2a0213-e95e-472d-b199-5719555f6df2"
-        - name: oauth2-proxy.config.clientSecret
-          value: "sJs4JKYGu84PyLtDdyeTfpJU8IXlLZdJ"
-        - name: oauth2-proxy.config.cookieSecret
-          value: "z2VpXUQxfDgXzQQwIEST3XTbTDosjHJa"
+        - name: externalSecret
+          value: "true"
   destination:
     server: https://kubernetes.default.svc
     namespace: dreamteams

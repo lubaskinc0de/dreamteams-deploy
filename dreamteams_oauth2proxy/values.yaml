@@ -1,8 +1,6 @@
 oauth2-proxy:
   config:
-    clientID: ""
-    clientSecret: ""
-    cookieSecret: ""
+    existingSecret: dreamteams-oauth2proxy-secret
     configFile: |
       upstreams=["static://202"]
       reverse_proxy=true

@@ -16,12 +16,8 @@ spec:
       valueFiles:
         - values.yaml               # Which values file to use
       parameters:
-        - name: postgresql.auth.password
-          value: postgres
-        - name: postgresql.auth.username
-          value: postgres
-        - name: postgresql.auth.database
-          value: postgres
+        - name: externalSecret
+          value: "true"
 
   destination:
     server: https://kubernetes.default.svc  # Deploy to the local cluster (minikube)
