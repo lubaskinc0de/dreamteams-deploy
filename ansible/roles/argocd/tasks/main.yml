@@ -111,6 +111,24 @@
 - name: Apply ArgoCD applications
   shell: kubectl apply -f /tmp/dreamteams-deploy/apps/
 
+# Copy k3s kubeconfig to the cluster user's home so they can run kubectl
+# without switching to root. k3s writes the config to /etc/rancher/k3s/k3s.yaml
+# which is only readable by root by default.
+- name: Create .kube directory for cluster user
+  file:
+    path: /home/{{ cluster_user }}/.kube
+    state: directory
+    owner: "{{ cluster_user }}"
+    mode: '0700'
+
+- name: Copy kubeconfig to cluster user
+  copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: /home/{{ cluster_user }}/.kube/config
+    remote_src: yes
+    owner: "{{ cluster_user }}"
+    mode: '0600'
+
 # Secrets are managed via Sealed Secrets — the SealedSecret manifests in
 # sealed-secrets/local/ (or prod/) are applied by ArgoCD automatically.
 # No manual secret injection needed here.

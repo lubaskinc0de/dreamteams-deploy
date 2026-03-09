@@ -7,7 +7,7 @@ rustfs:
   secret:
     existingSecret: dreamteams-rustfs-secret
   storageclass:
-    name: standard  # minikube default storageclass
+    name: standard
     dataStorageSize: 1Gi
     logStorageSize: 256Mi
   ingress:

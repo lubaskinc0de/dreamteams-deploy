@@ -1,8 +1,15 @@
 # DreamTeams deployment automation
 # Usage: just <recipe>
+#
+# Environment variables:
+#   SSH_KEY       path to SSH private key for connecting to VDS (default: ~/.ssh/id_ed25519)
+#   VAULT_PASS    ansible-vault password file path (optional, omit to be prompted)
 
 argocd_namespace := "argocd"
 argocd_flags := "--port-forward --port-forward-namespace " + argocd_namespace
+
+# SSH key used to connect to the VDS — override with: SSH_KEY=/path/to/key just prod-up
+ssh_key := env_var_or_default("SSH_KEY", "~/.ssh/id_ed25519")
 
 # Show available recipes
 default:
@@ -44,8 +51,11 @@ local-run:
 # ─── Prod ─────────────────────────────────────────────────────────────────────
 
 # Provision and bootstrap prod server
+# Override SSH key with: SSH_KEY=/path/to/key just prod-up
 prod-up:
-    cd ansible && ansible-playbook site.yml -i inventory/hosts.yml --ask-vault-pass
+    cd ansible; ansible-galaxy collection install -r requirements.yml
+    ANSIBLE_PRIVATE_KEY_FILE={{ssh_key}} \
+        ansible-playbook ansible/site.yml -i ansible/inventory/hosts.yml --ask-vault-pass
 
 # Fetch prod cluster cert for sealing prod secrets
 prod-fetch-cert:

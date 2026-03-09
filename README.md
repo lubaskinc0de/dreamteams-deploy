@@ -3,20 +3,14 @@
 ## Production: Setting up a new server
 
 ### Prerequisites (local machine)
-- Ansible
+- Ansible: `pip install ansible`
 - `kubeseal` installed
-- SSH key pair (`~/.ssh/id_ed25519`)
+- SSH key pair (default: `~/.ssh/id_ed25519`, override with `SSH_KEY=/path/to/key`)
 
-### 1. Install Ansible dependencies
-```bash
-cd ansible
-ansible-galaxy collection install -r requirements.yml
-```
-
-### 2. Configure the server
+### 1. Configure the server
 Edit `ansible/inventory/hosts.yml` — replace `YOUR_VDS_IP` with the actual server IP.
 
-### 3. Configure domain
+### 2. Configure domain
 Before deploying, update these files with your actual domain:
 
 - `dreamteams_ingress/values.yaml` — set `host`
@@ -25,7 +19,7 @@ Before deploying, update these files with your actual domain:
 
 Also update the Keycloak redirect URL in your Keycloak admin panel.
 
-### 4. Fill Ansible Vault secrets
+### 3. Fill Ansible Vault secrets
 ```bash
 ansible-vault edit ansible/group_vars/secrets.yml
 ```
@@ -44,8 +38,12 @@ Add the deploy key public part to GitHub → repo Settings → Deploy keys.
 
 ### 5. Run Ansible
 ```bash
-cd ansible
-ansible-playbook site.yml -i inventory/hosts.yml --ask-vault-pass
+just prod-up
+```
+
+If your SSH key is not at `~/.ssh/id_ed25519`:
+```bash
+SSH_KEY=~/.ssh/your_key just prod-up
 ```
 
 This will:
