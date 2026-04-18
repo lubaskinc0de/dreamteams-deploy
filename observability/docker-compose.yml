@@ -1,0 +1,109 @@
+services:
+    grafana:
+        image: grafana/grafana:12.1.4
+        restart: unless-stopped
+        container_name: grafana
+        ports:
+            - "3000:3000"
+        volumes:
+          - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+          - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+          - grafana_data:/var/lib/grafana
+        networks:
+            - "shared"
+
+    vector:
+        container_name: vector
+        image: timberio/vector:0.48.0-debian
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ./vector.yaml:/etc/vector/vector.yaml
+        environment:
+          - DOCKER_HOST=unix:///var/run/docker.sock
+        networks:
+            - "shared"
+
+    loki:
+        container_name: loki
+        image: grafana/loki:3.4.1
+        command: ["-config.file=/etc/loki/config.yaml"]
+        expose:
+            - "3100"
+        restart: unless-stopped
+        volumes:
+          - ./loki.yaml:/etc/loki/config.yaml
+          - loki_data:/loki
+        networks:
+            - "shared"
+
+    tempo:
+        image: grafana/tempo:main-8b5ef72
+        container_name: tempo
+        command: [ "-config.file=/etc/tempo.yaml" ]
+        volumes:
+            - ./tempo.yaml:/etc/tempo.yaml
+            - tempo_data:/tmp/tempo
+        ports:
+            - "3200:3200"   # HTTP (Grafana)
+        networks:
+            - "shared"
+
+    otel-collector:
+        image: otel/opentelemetry-collector-contrib:0.114.0
+        container_name: otel-collector
+        restart: unless-stopped
+        command: ["--config=/etc/otel-collector.yaml"]
+        volumes:
+            - ./otel-collector.yaml:/etc/otel-collector.yaml:ro
+        ports:
+            - "4317:4317"   # OTLP gRPC ingress (apps)
+            - "4318:4318"   # OTLP HTTP ingress (apps)
+            - "8889:8889"   # Prometheus exposition
+        networks:
+            - "shared"
+        depends_on:
+            - tempo
+
+    prometheus:
+        image: prom/prometheus:v3.11.2
+        container_name: prometheus
+        restart: unless-stopped
+        ports:
+            - "9090:9090"
+        command:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--web.enable-lifecycle"
+        volumes:
+            - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+            - prometheus_data:/prometheus
+        networks:
+            - "shared"
+        depends_on:
+            - node-exporter
+
+    node-exporter:
+        image: prom/node-exporter:v1.11.1
+        container_name: node-exporter
+        restart: unless-stopped
+        networks:
+            - "shared"
+        volumes:
+            - /proc:/host/proc:ro
+            - /sys:/host/sys:ro
+            - /:/host:ro,rslave
+        ports:
+            - "9100:9100"
+        command:
+            - '--path.procfs=/host/proc'
+            - '--path.sysfs=/host/sys'
+            - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)'
+
+networks:
+    shared:
+        external: true
+
+volumes:
+    grafana_data:
+    loki_data:
+    tempo_data:
+    prometheus_data:

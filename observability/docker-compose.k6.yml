@@ -1,0 +1,19 @@
+services:
+    k6:
+        image: grafana/k6:0.57.0
+        container_name: k6
+        command: run /scripts/demo.js
+        volumes:
+            - ./k6:/scripts
+        environment:
+            - SUPERUSER_PASSWORD=${SUPERUSER_PASSWORD}
+            - API_URL=${API_URL:-http://api:5000}
+            - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
+            - K6_PROMETHEUS_RW_PUSH_INTERVAL=5s
+            - K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true
+        networks:
+            - shared
+
+networks:
+    shared:
+        external: true

@@ -47,6 +47,16 @@ local-run:
     just argocd-open
     kubectl port-forward svc/traefik 80:80 -n traefik
 
+observe:
+    docker compose -f observability/docker-compose.yml up --build
+
+observe-clear:
+    docker compose -f observability/docker-compose.yml down -v
+
+# Run k6 demo traffic against the local API. Requires SUPERUSER_PASSWORD env var.
+# Usage: SUPERUSER_PASSWORD=asd123321 just demo-traffic
+demo-traffic:
+    docker compose -f observability/docker-compose.k6.yml run --rm k6
 
 # ─── Prod ─────────────────────────────────────────────────────────────────────
 

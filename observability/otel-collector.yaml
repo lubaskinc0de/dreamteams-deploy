@@ -1,0 +1,43 @@
+receivers:
+    otlp:
+        protocols:
+            http:
+                endpoint: 0.0.0.0:4318
+            grpc:
+                endpoint: 0.0.0.0:4317
+
+processors:
+    # Batches before exporting — reduces TSDB write churn.
+    batch:
+        timeout: 5s
+        send_batch_size: 1024
+
+exporters:
+    # Exposes /metrics for Prometheus to scrape.
+    # `resource_to_telemetry_conversion.enabled = true` lifts OTel resource attrs
+    # (service.instance.id, etc) into Prometheus labels so each worker becomes its
+    # own timeseries; dashboards aggregate via `sum(...)`. Without this, multi-worker
+    # data points with same metric+labels overwrite each other on export.
+    prometheus:
+        endpoint: 0.0.0.0:8889
+        send_timestamps: true
+        metric_expiration: 5m
+        resource_to_telemetry_conversion:
+            enabled: true
+
+    # Forwards traces to Tempo.
+    otlphttp/tempo:
+        endpoint: http://tempo:4318
+        tls:
+            insecure: true
+
+service:
+    pipelines:
+        traces:
+            receivers: [otlp]
+            processors: [batch]
+            exporters: [otlphttp/tempo]
+        metrics:
+            receivers: [otlp]
+            processors: [batch]
+            exporters: [prometheus]
