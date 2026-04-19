@@ -93,13 +93,24 @@ function competitionBody(domains, participantType, registrationStart) {
       registration_start: registrationStart,
       registration_end: futureDate(30),
     },
-    participant_limits: { min: 1, max: 500 },
+    participant_limits: { max: 500 },
     domains: domains,
     participant_type: participantType,
     venue: { format: 'online', location: null },
     team_size: { min: 1, max: 4 },
     auto_accept: false,
-    milestones: [],
+    milestones: [
+      {
+        timestamp: futureDate(7),
+        title: 'Kickoff',
+        description: 'Teams assemble and confirm problem statements.',
+      },
+      {
+        timestamp: futureDate(20),
+        title: 'Mid-point check-in',
+        description: null,
+      },
+    ],
   };
 }
 
@@ -203,9 +214,22 @@ export function participantFlow(data) {
 
   sleep(0.2);
 
-  // Browse competitions
+  // Browse competitions — anonymous preview
   const previewRes = get('/competitions/preview?page=1', userId);
-  check(previewRes, { 'competitions listed': (r) => r.status === 200 });
+  check(previewRes, { 'competitions listed (preview)': (r) => r.status === 200 });
+
+  sleep(0.2);
+
+  // Participant-facing explore with rich filters — mix of default and filtered requests
+  const explorePaths = [
+    '/competitions/explore?sort_by=most_popular&page=1',
+    '/competitions/explore?sort_by=newest&page=1',
+    `/competitions/explore?sort_by=most_popular&domains=${DOMAINS[randomIntBetween(0, DOMAINS.length - 1)]}`,
+    `/competitions/explore?sort_by=most_popular&min_team_size=1&max_team_size=4`,
+    '/competitions/explore?sort_by=most_popular&auto_accept=false',
+  ];
+  const exploreRes = get(explorePaths[randomIntBetween(0, explorePaths.length - 1)], userId);
+  check(exploreRes, { 'competitions explored': (r) => r.status === 200 });
 
   sleep(0.2);
 
@@ -233,8 +257,15 @@ export function participantFlow(data) {
 
   sleep(0.2);
 
-  // List own applications
-  const myAppsRes = get('/applications/', userId);
+  // List own applications — exercise sort + status filter variants
+  const myAppsPaths = [
+    '/applications/?sort_by=created_at&sort_order=desc',
+    '/applications/?sort_by=created_at&sort_order=asc',
+    '/applications/?status=pending',
+    '/applications/?status=accepted',
+    '/applications/?status=rejected',
+  ];
+  const myAppsRes = get(myAppsPaths[randomIntBetween(0, myAppsPaths.length - 1)], userId);
   check(myAppsRes, { 'my applications listed': (r) => r.status === 200 });
 
   // Occasionally withdraw a pending application
@@ -254,12 +285,21 @@ export function organizerFlow(data) {
 
   const comp = competitions[__VU % competitions.length];
 
-  // List applications for this competition
-  const listRes = get(`/competitions/${comp.id}/applications/`, comp.organizer_id);
+  // List applications for this competition — exercise sort + status filter variants
+  const organizerListPaths = [
+    `/competitions/${comp.id}/applications/?sort_by=created_at&sort_order=desc`,
+    `/competitions/${comp.id}/applications/?sort_by=created_at&sort_order=asc`,
+    `/competitions/${comp.id}/applications/?status=pending`,
+    `/competitions/${comp.id}/applications/?status=accepted`,
+    `/competitions/${comp.id}/applications/?status=rejected`,
+  ];
+  const listRes = get(organizerListPaths[randomIntBetween(0, organizerListPaths.length - 1)], comp.organizer_id);
   check(listRes, { 'applications listed': (r) => r.status === 200 });
 
-  if (listRes.status === 200) {
-    const items = (JSON.parse(listRes.body).items || []).filter(a => a.status === 'pending');
+  // Always re-read pending applications for accept/reject triage
+  const pendingRes = get(`/competitions/${comp.id}/applications/?status=pending`, comp.organizer_id);
+  if (pendingRes.status === 200) {
+    const items = JSON.parse(pendingRes.body).items || [];
     for (const app of items.slice(0, 5)) {
       sleep(0.15);
       const action = Math.random() > 0.3 ? 'accept' : 'reject';
