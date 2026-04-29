@@ -1,0 +1,79 @@
+authentik:
+  global:
+    affinity:
+      podAntiAffinity: none
+      nodeAffinity:
+        type: none
+
+  authentik:
+    enabled: true
+    existingSecret:
+      secretName: authentik-env
+    error_reporting:
+      enabled: false
+    postgresql:
+      host: dreamteams-authentik-postgresql
+      name: authentik
+      user: authentik
+      password: ""
+
+  server:
+    replicas: 1
+    ingress:
+      enabled: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 384Mi
+      limits:
+        cpu: 1000m
+        memory: 768Mi
+
+  worker:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 384Mi
+      limits:
+        cpu: 1000m
+        memory: 768Mi
+
+  postgresql:
+    enabled: true
+    auth:
+      existingSecret: authentik-postgres-secret
+      secretKeys:
+        adminPasswordKey: postgres-password
+        userPasswordKey: password
+      username: authentik
+      database: authentik
+    primary:
+      extendedConfiguration: |
+        max_connections = 120
+        shared_buffers = 128MB
+        effective_cache_size = 384MB
+      persistence:
+        size: 1Gi
+      resources:
+        requests:
+          cpu: 75m
+          memory: 256Mi
+        limits:
+          cpu: 750m
+          memory: 768Mi
+
+  redis:
+    enabled: true
+    master:
+      persistence:
+        size: 256Mi
+      resources:
+        requests:
+          cpu: 25m
+          memory: 64Mi
+        limits:
+          cpu: 250m
+          memory: 192Mi
+    replica:
+      replicaCount: 0

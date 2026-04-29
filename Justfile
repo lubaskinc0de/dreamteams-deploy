@@ -1,15 +1,8 @@
 # DreamTeams deployment automation
 # Usage: just <recipe>
 #
-# Environment variables:
-#   SSH_KEY       path to SSH private key for connecting to VDS (default: ~/.ssh/id_ed25519)
-#   VAULT_PASS    ansible-vault password file path (optional, omit to be prompted)
-
 argocd_namespace := "argocd"
 argocd_flags := "--port-forward --port-forward-namespace " + argocd_namespace
-
-# SSH key used to connect to the VDS — override with: SSH_KEY=/path/to/key just prod-up
-ssh_key := env_var_or_default("SSH_KEY", "~/.ssh/id_ed25519")
 
 # Show available recipes
 default:
@@ -17,10 +10,13 @@ default:
 
 # ─── Local ────────────────────────────────────────────────────────────────────
 
-# Apply all ArgoCD apps + local secrets
+# Apply local K3S ArgoCD apps.
 local-apply:
-    kubectl apply -f apps/
-    kubectl apply -f local/secrets.yaml
+    kubectl apply -f apps/local/
+
+# Apply production ArgoCD apps.
+prod-apply:
+    kubectl apply -f apps/prod/
 
 # Re-login to ArgoCD (token expires after 24h)
 argocd-login:
@@ -32,9 +28,11 @@ argocd-login:
 
 # Sync all ArgoCD apps
 local-sync:
-    argocd app sync sealed-secrets dreamteams-secrets dreamteams-postgres \
-        dreamteams-redis dreamteams-rustfs dreamteams-migrations \
-        dreamteams-oauth2proxy dreamteams-api dreamteams-ingress \
+    argocd app sync cert-manager dreamteams-cert-issuer dreamteams-local-secrets \
+        dreamteams-postgres dreamteams-redis dreamteams-rustfs dreamteams-nats \
+        dreamteams-authentik dreamteams-pgbouncer dreamteams-oauth2proxy \
+        dreamteams-migrations dreamteams-api dreamteams-exporter \
+        dreamteams-frontend dreamteams-ingress dreamteams-observability \
         {{argocd_flags}}
 
 # Show status of all apps
@@ -43,9 +41,14 @@ local-status:
 
 local-run:
     just local-apply
-    just apps-apply
     just argocd-open
-    kubectl port-forward svc/traefik 80:80 -n traefik
+    @echo "Local app:      https://dreamteams.localhost"
+    @echo "Local Authentik: https://auth.dreamteams.localhost/if/flow/initial-setup/"
+    @echo "Local Grafana:  https://grafana.dreamteams.localhost"
+
+local-k3s-up:
+    just local-apply
+    @echo "Local K3S apps applied. Sync in ArgoCD or run: just local-sync"
 
 observe:
     docker compose -f observability/docker-compose.yml up --build
@@ -60,13 +63,6 @@ demo-traffic:
 
 # ─── Prod ─────────────────────────────────────────────────────────────────────
 
-# Provision and bootstrap prod server
-# Override SSH key with: SSH_KEY=/path/to/key just prod-up
-prod-up:
-    cd ansible; ansible-galaxy collection install -r requirements.yml
-    ANSIBLE_PRIVATE_KEY_FILE={{ssh_key}} \
-        ansible-playbook ansible/site.yml -i ansible/inventory/hosts.yml --ask-vault-pass
-
 # Fetch prod cluster cert for sealing prod secrets
 prod-fetch-cert:
     kubeseal --fetch-cert \
@@ -76,11 +72,6 @@ prod-fetch-cert:
     @echo "Cert saved to /tmp/prod-cert.pem"
 
 # ─── Secrets ──────────────────────────────────────────────────────────────────
-
-# Seal a secret for local. Usage: just seal-local /tmp/secret.yaml sealed-secrets/local/secret.yaml
-seal-local input output:
-    kubeseal --controller-name=sealed-secrets --controller-namespace=kube-system \
-        --format yaml < {{input}} > {{output}}
 
 # Seal a secret for prod. Usage: just seal-prod /tmp/secret.yaml sealed-secrets/prod/secret.yaml
 seal-prod input output:
@@ -93,7 +84,3 @@ seal-prod input output:
 argocd-open:
     @echo "URL:      http://$(kubectl get svc argocd-server -n {{argocd_namespace}} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
     @echo "Password: $(kubectl get secret argocd-initial-admin-secret -n {{argocd_namespace}} -o jsonpath='{.data.password}' | base64 -d)"
-
-# Re-apply ArgoCD Application manifests after changing apps/*.yaml
-apps-apply:
-    kubectl apply -f apps/

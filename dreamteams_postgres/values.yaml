@@ -7,5 +7,30 @@ postgresql:
     username: postgres
     database: postgres
   primary:
+    initdb:
+      scriptsSecret: dreamteams-postgres-initdb
+    extendedConfiguration: |
+      max_connections = 160
+      shared_buffers = 256MB
+      effective_cache_size = 768MB
+      work_mem = 4MB
+      maintenance_work_mem = 64MB
+      wal_buffers = 16MB
+      min_wal_size = 256MB
+      max_wal_size = 1GB
+      checkpoint_completion_target = 0.9
+      statement_timeout = 30s
+      idle_in_transaction_session_timeout = 60s
+      lock_timeout = 5s
+      track_io_timing = on
+      log_min_duration_statement = 500ms
+      timezone = 'UTC'
     persistence:
       size: 1Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi

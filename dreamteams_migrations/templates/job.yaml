@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Release.Name }}-migrations-{{ .Chart.AppVersion | replace "." "-" }}
+  name: {{ .Release.Name }}-migrations-{{ .Values.image.tag | default .Chart.AppVersion | replace "." "-" | replace ":" "-" }}
   labels:
     app.kubernetes.io/name: dreamteams-migrations
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -9,6 +9,10 @@ spec:
   backoffLimit: 3
   template:
     spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -17,11 +21,19 @@ spec:
       initContainers:
         - name: wait-for-db
           image: busybox:1.37
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
           command:
             - sh
             - -c
             - |
-              until nc -z {{ .Values.env.APP_DB_HOST }} {{ .Values.env.APP_DB_PORT }}; do
+              until nc -z {{ .Values.waitFor.host }} {{ .Values.waitFor.port }}; do
                 echo "Waiting for database..."
                 sleep 2
               done
@@ -29,6 +41,10 @@ spec:
         - name: migrations
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           command:
             - dreamteams
             - migrations
@@ -38,10 +54,16 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- range $key, $value := .Values.secretEnv }}
-            - name: {{ $key }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $.Release.Name }}-migrations-secret
-                  key: {{ $key }}
-            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/dreamteams/migrations.toml
+              subPath: {{ .Values.config.key }}
+              readOnly: true
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          secret:
+            secretName: {{ required "config.existingSecret is required" .Values.config.existingSecret }}

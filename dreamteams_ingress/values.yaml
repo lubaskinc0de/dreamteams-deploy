@@ -1,1 +1,40 @@
-host: localhost
+appHost: dreamteams.localhost
+authHost: auth.dreamteams.localhost
+grafanaHost: grafana.dreamteams.localhost
+issuerName: dreamteams-local
+
+tls:
+  enabled: true
+  appSecretName: dreamteams-app-tls
+  authSecretName: dreamteams-auth-tls
+  grafanaSecretName: dreamteams-grafana-tls
+
+services:
+  frontend:
+    name: dreamteams-frontend
+    port: 80
+  api:
+    name: dreamteams-api
+    port: 5000
+  exporter:
+    name: dreamteams-exporter
+    port: 8001
+  oauth2Proxy:
+    name: dreamteams-oauth2proxy-oauth2-proxy
+    port: 8000
+  rustfs:
+    name: dreamteams-rustfs-svc
+    port: 9000
+  authentik:
+    name: dreamteams-authentik-server
+    namespace: authentik
+    port: 80
+  grafana:
+    name: grafana
+    namespace: observability
+    port: 3000
+
+logout:
+  enabled: true
+  endSessionUrl: "https://auth.dreamteams.localhost/application/o/dreamteams/end-session/"
+  postLogoutRedirectUrl: "https://dreamteams.localhost/"

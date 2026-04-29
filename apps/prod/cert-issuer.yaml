@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dreamteams-cert-issuer
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:lubaskinc0de/dreamteams-deploy.git
+    targetRevision: HEAD
+    path: dreamteams_cert_issuer
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: issuer.name
+          value: dreamteams-prod
+        - name: issuer.type
+          value: letsencrypt
+        - name: issuer.email
+          value: lubaskincorporation@gmail.com
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dreamteams-ingress
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:lubaskinc0de/dreamteams-deploy.git
+    targetRevision: HEAD
+    path: dreamteams_ingress
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: issuerName
+          value: dreamteams-prod
+        - name: appHost
+          value: dreamteams.example.com
+        - name: authHost
+          value: auth.dreamteams.example.com
+        - name: grafanaHost
+          value: grafana.dreamteams.example.com
+        - name: logout.endSessionUrl
+          value: https://auth.dreamteams.example.com/application/o/dreamteams/end-session/
+        - name: logout.postLogoutRedirectUrl
+          value: https://dreamteams.example.com/
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dreamteams
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

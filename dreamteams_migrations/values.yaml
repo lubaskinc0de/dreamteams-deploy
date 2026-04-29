@@ -7,12 +7,32 @@ imagePullSecrets:
   - name: ghcr-secret
 
 env:
-  APP_DB_HOST: "dreamteams-postgres-postgresql"
-  APP_DB_PORT: "5432"
-  APP_DB_NAME: "postgres"
+  APP_CONFIG_PATH: "/etc/dreamteams/migrations.toml"
 
-secretEnv:
-  APP_DB_USER: ""
-  APP_DB_PASSWORD: ""
+config:
+  existingSecret: dreamteams-migrations-config
+  key: migrations.toml
 
-externalSecret: false
+waitFor:
+  host: dreamteams-postgres-postgresql
+  port: 5432
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001

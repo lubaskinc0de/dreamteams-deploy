@@ -1,0 +1,59 @@
+replicaCount: 1
+
+image:
+  repository: edoburu/pgbouncer
+  tag: v1.23.1-p3
+  pullPolicy: IfNotPresent
+
+nameOverride: dreamteams-pgbouncer
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 6432
+
+postgres:
+  host: dreamteams-postgres-postgresql
+  port: 5432
+  database: postgres
+
+secret:
+  existingSecret: dreamteams-pgbouncer-secret
+  userKey: DB_USER
+  passwordKey: DB_PASSWORD
+
+pool:
+  mode: transaction
+  maxClientConn: "300"
+  defaultPoolSize: "80"
+  reservePoolSize: "10"
+  reservePoolTimeout: "3"
+  serverLifetime: "3600"
+  serverIdleTimeout: "600"
+  maxPreparedStatements: "100"
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 48Mi
+  limits:
+    cpu: 300m
+    memory: 192Mi
+
+podSecurityContext: {}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

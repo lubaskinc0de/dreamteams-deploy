@@ -1,121 +1,32 @@
 # DreamTeams Deploy
 
-## Production: Setting up a new server
+Kubernetes/GitOps configuration for DreamTeams.
 
-### Prerequisites (local machine)
-- Ansible: `pip install ansible`
-- `kubeseal` installed
-- SSH key pair (default: `~/.ssh/id_ed25519`, override with `SSH_KEY=/path/to/key`)
+## Stack
 
-### 1. Configure the server
-Edit `ansible/inventory/hosts.yml` — replace `YOUR_VDS_IP` with the actual server IP.
+- Frontend: static Nuxt image served by nginx.
+- Backend: 2 API replicas.
+- Exporter: 2 API replicas and 2 worker replicas.
+- Infrastructure: Postgres, PgBouncer, Redis, NATS JetStream, RustFS, Authentik, oauth2-proxy, cert-manager, Traefik.
+- Observability: Grafana, Prometheus, Loki, Tempo, OpenTelemetry Collector, Vector, node-exporter.
 
-### 2. Configure domain
-Before deploying, update these files with your actual domain:
+ArgoCD app manifests are split by environment:
 
-- `dreamteams_ingress/values.yaml` — set `host`
-- `dreamteams_oauth2proxy/values.yaml` — set `redirect_url`
-- `apps/api.yaml` — set `allow_origins` in `configFile`
+- `apps/local/` applies plaintext local-only secrets and self-signed certificates.
+- `apps/prod/` applies SealedSecrets and a Let’s Encrypt issuer.
 
-Also update the Keycloak redirect URL in your Keycloak admin panel.
+The local profile uses registry images and self-signed cert-manager certificates. Production uses pinned registry images, SealedSecrets, and a Let’s Encrypt ClusterIssuer.
 
-### 3. Fill Ansible Vault secrets
-```bash
-ansible-vault edit ansible/group_vars/secrets.yml
-```
+## Local K3S
 
-Required keys:
-```yaml
-ghcr_username: "your-github-username"
-ghcr_token: "your-github-PAT"     # needs read:packages scope
-ssh_private_key: |                 # deploy key with read access to this repo
-  -----BEGIN OPENSSH PRIVATE KEY-----
-  ...
-  -----END OPENSSH PRIVATE KEY-----
-```
+Prerequisites:
 
-Add the deploy key public part to GitHub → repo Settings → Deploy keys.
+- K3S with Traefik enabled.
+- kubectl, helm, argocd CLI, just.
+- ArgoCD installed in the `argocd` namespace.
 
-### 5. Run Ansible
-```bash
-just prod-up
-```
+Install ArgoCD if needed:
 
-If your SSH key is not at `~/.ssh/id_ed25519`:
-```bash
-SSH_KEY=~/.ssh/your_key just prod-up
-```
-
-This will:
-1. Harden the OS, create `deploy` user, configure firewall
-2. Install k3s
-3. Install ArgoCD and deploy all applications
-
-### 6. Seal prod secrets
-
-After Ansible finishes, the Sealed Secrets controller is running. Fetch its public cert:
-
-```bash
-just prod-fetch-cert
-```
-
-Create plain secret files in `/tmp` (never commit these), then seal each one:
-
-```bash
-just seal-prod /tmp/api-secret.yaml        sealed-secrets/prod/api-secret.yaml
-just seal-prod /tmp/migrations-secret.yaml sealed-secrets/prod/migrations-secret.yaml
-just seal-prod /tmp/postgres-secret.yaml   sealed-secrets/prod/postgres-secret.yaml
-just seal-prod /tmp/oauth2proxy-secret.yaml sealed-secrets/prod/oauth2proxy-secret.yaml
-just seal-prod /tmp/rustfs-secret.yaml     sealed-secrets/prod/rustfs-secret.yaml
-```
-
-See `sealed-secrets/local/` for the structure each file must have.
-
-Commit and push — ArgoCD picks them up automatically:
-```bash
-git add sealed-secrets/prod/
-git commit -m "add prod sealed secrets"
-git push
-```
-
-### 7. Get kubectl access
-
-After Ansible, copy kubeconfig from the server to your local machine:
-```bash
-scp deploy@YOUR_VDS_IP:~/.kube/config ~/.kube/prod-config
-export KUBECONFIG=~/.kube/prod-config
-kubectl get pods -n dreamteams
-```
-
----
-
-## Production: Adding a new agent node
-
-Buy a second VDS and add it to the inventory:
-
-```yaml
-# ansible/inventory/hosts.yml
-agent:
-  hosts:
-    AGENT_VDS_IP:
-```
-
-Run Ansible again — k3s-ansible handles joining the agent to the cluster automatically.
-
----
-
-## Local development
-
-### Prerequisites
-- minikube
-- kubectl, helm, argocd CLI, kubeseal, just
-
-### Start the stack
-```bash
-minikube start
-```
-
-Install ArgoCD manually (first time only):
 ```bash
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
@@ -123,17 +34,87 @@ helm upgrade --install argocd argo/argo-cd -n argocd --create-namespace \
   --set server.service.type=LoadBalancer --wait
 ```
 
-Run:
+Apply the local app set:
+
 ```bash
-just local-run
+just local-k3s-up
+just argocd-login
+just local-sync
 ```
 
-Open `http://localhost`.
+Local hosts:
 
+- `https://dreamteams.localhost`
+- `https://auth.dreamteams.localhost/if/flow/initial-setup/`
+- `https://grafana.dreamteams.localhost`
 
-### Updating a secret
+The local issuer is self-signed, so browser warnings and `curl -k` are expected. If your resolver does not handle nested `.localhost` names, add these to `/etc/hosts`:
+
+```text
+127.0.0.1 dreamteams.localhost auth.dreamteams.localhost grafana.dreamteams.localhost
+```
+
+Local secrets live in `local/secrets.yaml` and are intentionally fake. After initial Authentik setup, create the DreamTeams OIDC provider in Authentik and update `dreamteams-oauth2proxy-secret` locally so `client-id` and `client-secret` match that provider.
+
+For local images imported directly into K3S/containerd, override the relevant Helm values in the local ArgoCD app:
+
+- API, migrations, exporter: `image.repository`, `image.tag`, `image.pullPolicy`.
+- Frontend: `image.repository`, `image.tag`, `image.pullPolicy`.
+
+The frontend is static, so build the frontend image with the public API base that matches the environment. For these ingress rules, same-origin works best: API traffic is expected under `/api`, oauth2-proxy under `/oauth2`, and object URLs under `/s3`.
+
+If you reuse an old local PVC, Postgres init scripts will not run again. Delete the local DreamTeams PVCs before a clean re-test.
+
+The existing Docker Compose observability sandbox is still available for non-K3S local runs:
+
 ```bash
-# Edit /tmp/api-secret.yaml with new values, then:
-just seal-local /tmp/api-secret.yaml sealed-secrets/local/api-secret.yaml
-git add sealed-secrets/local/api-secret.yaml && git commit -m "update secret" && git push
+just observe
+SUPERUSER_PASSWORD=asd123321 just demo-traffic
+```
+
+## Production
+
+Before production deploy, update:
+
+- `apps/prod/ingress.yaml`: replace `dreamteams.example.com`, `auth.dreamteams.example.com`, and `grafana.dreamteams.example.com`.
+- `apps/prod/oauth2proxy.yaml`: replace the same hostnames in the oauth2-proxy config block.
+- SealedSecrets under `sealed-secrets/prod/` for every secret in `local/secrets.yaml`, with production values and namespaces preserved.
+
+Production secret names expected by the charts:
+
+- `dreamteams-api-config`
+- `dreamteams-exporter-config`
+- `dreamteams-migrations-config`
+- `dreamteams-postgres-secret`
+- `dreamteams-postgres-initdb`
+- `dreamteams-pgbouncer-secret`
+- `dreamteams-rustfs-secret`
+- `dreamteams-oauth2proxy-secret`
+- `authentik-env` in namespace `authentik`
+- `authentik-postgres-secret` in namespace `authentik`
+- `grafana-admin` in namespace `observability`
+
+Seal production secrets after the Sealed Secrets controller is available:
+
+```bash
+just prod-fetch-cert
+just seal-prod /tmp/api-config.yaml sealed-secrets/prod/api-config.yaml
+```
+
+Repeat for each production secret file. Do not commit plaintext production secrets.
+
+## Validation
+
+Render/lint locally:
+
+```bash
+helm dependency update dreamteams_authentik
+for chart in dreamteams_api dreamteams_migrations dreamteams_exporter dreamteams_frontend \
+  dreamteams_pgbouncer dreamteams_nats dreamteams_cert_issuer dreamteams_ingress \
+  observability dreamteams_postgres dreamteams_redis dreamteams_rustfs \
+  dreamteams_oauth2proxy dreamteams_authentik; do
+  release=$(printf '%s' "$chart" | tr '_' '-')
+  helm template "$release" "./$chart" >/tmp/$chart.yaml
+  helm lint "./$chart"
+done
 ```

@@ -4,5 +4,12 @@ redis:
   master:
     persistence:
       size: 256Mi
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 192Mi
   replica:
     replicaCount: 0

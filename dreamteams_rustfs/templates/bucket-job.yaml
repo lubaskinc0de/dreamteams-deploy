@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-buckets-{{ .Release.Revision }}
+  labels:
+    app.kubernetes.io/name: dreamteams-rustfs-buckets
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: buckets
+          image: {{ .Values.bucketJob.image }}
+          command:
+            - sh
+            - -c
+            - |
+              until mc alias set rustfs http://dreamteams-rustfs-svc:9000 "$RUSTFS_ACCESS_KEY" "$RUSTFS_SECRET_KEY"; do
+                sleep 2
+              done
+              mc mb --ignore-existing rustfs/users
+              mc mb --ignore-existing rustfs/exports
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.bucketJob.resources | nindent 12 }}
+          env:
+            - name: RUSTFS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dreamteams-rustfs-secret
+                  key: access_key
+            - name: RUSTFS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dreamteams-rustfs-secret
+                  key: secret_key

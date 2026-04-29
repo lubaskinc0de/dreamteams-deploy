@@ -1,0 +1,84 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/lubaskinc0de/dreamteams-frontend
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+nameOverride: dreamteams-frontend
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+runtimeConfig:
+  apiBase: "https://dreamteams.localhost"
+  useMock: "false"
+  apiTimeout: 10000
+  apiMaxRetries: 3
+  apiRetryBaseDelay: 300
+  apiRetryMaxDelay: 10000
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 101
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 101
+
+nginx:
+  config: |
+    server {
+      listen 8080;
+      server_name _;
+      root /usr/share/nginx/html;
+      index index.html;
+
+      location / {
+        try_files $uri $uri/ /index.html;
+      }
+
+      location = /healthz {
+        access_log off;
+        return 200 "ok\n";
+      }
+    }
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

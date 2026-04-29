@@ -1,0 +1,64 @@
+image:
+  repository: nats
+  tag: 2.11-alpine
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  clientPort: 4222
+  monitorPort: 8222
+
+jetstream:
+  storageSize: 512Mi
+
+stream:
+  name: exporter
+  subjects:
+    - exporter.jobs.process
+  storage: file
+  retention: limits
+  maxAge: 24h
+
+streamJob:
+  image: natsio/nats-box:0.18.0
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 96Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+podSecurityContext:
+  fsGroup: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

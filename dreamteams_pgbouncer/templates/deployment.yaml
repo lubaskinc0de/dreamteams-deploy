@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dreamteams_pgbouncer.fullname" . }}
+  labels:
+    {{- include "dreamteams_pgbouncer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "dreamteams_pgbouncer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dreamteams_pgbouncer.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "dreamteams_pgbouncer.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.37
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z {{ .Values.postgres.host }} {{ .Values.postgres.port }}; do
+                echo "Waiting for postgres..."
+                sleep 2
+              done
+      containers:
+        - name: pgbouncer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: DB_HOST
+              value: {{ .Values.postgres.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.postgres.port | quote }}
+            - name: DB_NAME
+              value: {{ .Values.postgres.database | quote }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret }}
+                  key: {{ .Values.secret.userKey }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret }}
+                  key: {{ .Values.secret.passwordKey }}
+            - name: POOL_MODE
+              value: {{ .Values.pool.mode | quote }}
+            - name: MAX_CLIENT_CONN
+              value: {{ .Values.pool.maxClientConn | quote }}
+            - name: DEFAULT_POOL_SIZE
+              value: {{ .Values.pool.defaultPoolSize | quote }}
+            - name: RESERVE_POOL_SIZE
+              value: {{ .Values.pool.reservePoolSize | quote }}
+            - name: RESERVE_POOL_TIMEOUT
+              value: {{ .Values.pool.reservePoolTimeout | quote }}
+            - name: SERVER_LIFETIME
+              value: {{ .Values.pool.serverLifetime | quote }}
+            - name: SERVER_IDLE_TIMEOUT
+              value: {{ .Values.pool.serverIdleTimeout | quote }}
+            - name: MAX_PREPARED_STATEMENTS
+              value: {{ .Values.pool.maxPreparedStatements | quote }}
+            - name: SERVER_RESET_QUERY
+              value: ""
+            - name: AUTH_TYPE
+              value: scram-sha-256
+            - name: IGNORE_STARTUP_PARAMETERS
+              value: extra_float_digits,search_path
+            - name: LISTEN_PORT
+              value: {{ .Values.service.port | quote }}
+          ports:
+            - name: pgbouncer
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: pgbouncer
+          livenessProbe:
+            tcpSocket:
+              port: pgbouncer
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

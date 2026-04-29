@@ -1,0 +1,92 @@
+image:
+  repository: ghcr.io/lubaskinc0de/dreamteams
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+nameOverride: dreamteams-exporter
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ""
+
+config:
+  existingSecret: dreamteams-exporter-config
+  key: config.toml
+
+env:
+  EXPORTER_CONFIG_PATH: "/etc/dreamteams-exporter/config.toml"
+
+api:
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 8001
+  command:
+    - dreamteams-exporter
+    - run
+    - api
+  livenessProbe:
+    httpGet:
+      path: /internal/alive
+      port: http
+  readinessProbe:
+    httpGet:
+      path: /internal/ready
+      port: http
+  resources:
+    requests:
+      cpu: 75m
+      memory: 160Mi
+    limits:
+      cpu: 750m
+      memory: 512Mi
+
+worker:
+  replicaCount: 2
+  command:
+    - dreamteams-exporter
+    - run
+    - worker
+  resources:
+    requests:
+      cpu: 75m
+      memory: 160Mi
+    limits:
+      cpu: 750m
+      memory: 512Mi
+
+waitFor:
+  - name: redis
+    host: dreamteams-redis-master
+    port: 6379
+  - name: nats
+    host: dreamteams-nats
+    port: 4222
+  - name: rustfs
+    host: dreamteams-rustfs-svc
+    port: 9000
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

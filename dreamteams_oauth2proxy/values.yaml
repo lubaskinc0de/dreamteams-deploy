@@ -1,10 +1,14 @@
 oauth2-proxy:
+  image:
+    tag: v7.11.0-alpine
+  replicaCount: 1
   config:
     existingSecret: dreamteams-oauth2proxy-secret
     configFile: |
       upstreams=["static://202"]
       reverse_proxy=true
       cookie_httponly=true
+      cookie_secure=true
       request_logging=true
       auth_logging=true
       standard_logging=true
@@ -12,20 +16,22 @@ oauth2-proxy:
       redis_connection_url="redis://dreamteams-redis-master:6379/2"
       skip_provider_button=true
       set_xauthrequest=true
+      set_authorization_header=true
       pass_authorization_header=true
       pass_access_token=true
       insecure_oidc_allow_unverified_email=true
-      provider="keycloak-oidc"
-      redirect_url="http://localhost/oauth2/callback"
-      oidc_issuer_url="https://lemur-14.cloud-iam.com/auth/realms/lubaskin"
+      provider="oidc"
+      redirect_url="https://dreamteams.localhost/oauth2/callback"
+      oidc_issuer_url="https://auth.dreamteams.localhost/application/o/dreamteams/"
+      scope="openid email profile offline_access"
       code_challenge_method="S256"
       email_domains="*"
-      http_address="http://0.0.0.0:8000"
-      cookie_refresh="0h4m0s"
-      cookie_expire="720h0m0s"
-      cookie_csrf_per_request = true
-      force_json_errors = true
-      skip_auth_routes = [
+      whitelist_domains=["auth.dreamteams.localhost"]
+      cookie_refresh="4m"
+      cookie_expire="720h"
+      cookie_csrf_per_request=true
+      force_json_errors=true
+      skip_auth_routes=[
           "/api/docs",
           "/api/openapi.json",
           "/api/competitions/preview"
@@ -33,3 +39,21 @@ oauth2-proxy:
   service:
     type: ClusterIP
     portNumber: 8000
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  securityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  podSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+  serviceAccount:
+    automountServiceAccountToken: false

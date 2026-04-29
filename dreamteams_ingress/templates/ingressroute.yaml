@@ -1,13 +1,80 @@
+{{- if .Values.tls.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dreamteams-app
+  namespace: dreamteams
+spec:
+  secretName: {{ .Values.tls.appSecretName }}
+  dnsNames:
+    - {{ .Values.appHost }}
+  issuerRef:
+    name: {{ .Values.issuerName }}
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dreamteams-auth
+  namespace: {{ .Values.services.authentik.namespace }}
+spec:
+  secretName: {{ .Values.tls.authSecretName }}
+  dnsNames:
+    - {{ .Values.authHost }}
+  issuerRef:
+    name: {{ .Values.issuerName }}
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dreamteams-grafana
+  namespace: {{ .Values.services.grafana.namespace }}
+spec:
+  secretName: {{ .Values.tls.grafanaSecretName }}
+  dnsNames:
+    - {{ .Values.grafanaHost }}
+  issuerRef:
+    name: {{ .Values.issuerName }}
+    kind: ClusterIssuer
+---
+{{- end }}
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: dreamteams
+  name: dreamteams-web
   namespace: dreamteams
 spec:
   entryPoints:
-    - web
+    - websecure
+  {{- if .Values.tls.enabled }}
+  tls:
+    secretName: {{ .Values.tls.appSecretName }}
+  {{- end }}
   routes:
-    - match: Host(`{{ .Values.host }}`) && PathPrefix(`/api`)
+    {{- if .Values.logout.enabled }}
+    - match: Host(`{{ .Values.appHost }}`) && Path(`/logout`)
+      kind: Rule
+      middlewares:
+        - name: logout-redirect
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.frontend.name }}
+          port: {{ .Values.services.frontend.port }}
+    {{- end }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api/exports`)
+      kind: Rule
+      middlewares:
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+        - name: exporter-strip-prefix
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.exporter.name }}
+          port: {{ .Values.services.exporter.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api`)
       kind: Rule
       middlewares:
         - name: oauth-errors
@@ -15,17 +82,61 @@ spec:
         - name: oauth-auth
           namespace: dreamteams
       services:
-        - name: dreamteams-api
-          port: 5000
-
-    - match: Host(`{{ .Values.host }}`) && PathPrefix(`/oauth2`)
+        - name: {{ .Values.services.api.name }}
+          port: {{ .Values.services.api.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/oauth2`)
       kind: Rule
       services:
-        - name: dreamteams-oauth2proxy-oauth2-proxy
-          port: 8000
-
-    - match: Host(`{{ .Values.host }}`) && PathPrefix(`/s3`)
+        - name: {{ .Values.services.oauth2Proxy.name }}
+          port: {{ .Values.services.oauth2Proxy.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/s3`)
+      kind: Rule
+      middlewares:
+        - name: s3-strip-prefix
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.rustfs.name }}
+          port: {{ .Values.services.rustfs.port }}
+    - match: Host(`{{ .Values.appHost }}`)
       kind: Rule
       services:
-        - name: dreamteams-rustfs-svc
-          port: 9000
+        - name: {{ .Values.services.frontend.name }}
+          port: {{ .Values.services.frontend.port }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dreamteams-auth
+  namespace: {{ .Values.services.authentik.namespace }}
+spec:
+  entryPoints:
+    - websecure
+  {{- if .Values.tls.enabled }}
+  tls:
+    secretName: {{ .Values.tls.authSecretName }}
+  {{- end }}
+  routes:
+    - match: Host(`{{ .Values.authHost }}`)
+      kind: Rule
+      services:
+        - name: {{ .Values.services.authentik.name }}
+          port: {{ .Values.services.authentik.port }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dreamteams-grafana
+  namespace: {{ .Values.services.grafana.namespace }}
+spec:
+  entryPoints:
+    - websecure
+  {{- if .Values.tls.enabled }}
+  tls:
+    secretName: {{ .Values.tls.grafanaSecretName }}
+  {{- end }}
+  routes:
+    - match: Host(`{{ .Values.grafanaHost }}`)
+      kind: Rule
+      services:
+        - name: {{ .Values.services.grafana.name }}
+          port: {{ .Values.services.grafana.port }}

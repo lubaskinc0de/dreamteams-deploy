@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dreamteams-nats
+  labels:
+    app.kubernetes.io/name: dreamteams-nats
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: client
+      port: {{ .Values.service.clientPort }}
+      targetPort: client
+    - name: monitor
+      port: {{ .Values.service.monitorPort }}
+      targetPort: monitor
+  selector:
+    app.kubernetes.io/name: dreamteams-nats
+    app.kubernetes.io/instance: {{ .Release.Name }}

@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dreamteams-oauth2proxy
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:lubaskinc0de/dreamteams-deploy.git
+    targetRevision: HEAD
+    path: dreamteams_oauth2proxy
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: oauth2-proxy.config.configFile
+          value: |
+            upstreams=["static://202"]
+            reverse_proxy=true
+            cookie_httponly=true
+            cookie_secure=true
+            request_logging=true
+            auth_logging=true
+            standard_logging=true
+            session_store_type="redis"
+            redis_connection_url="redis://dreamteams-redis-master:6379/2"
+            skip_provider_button=true
+            set_xauthrequest=true
+            set_authorization_header=true
+            pass_authorization_header=true
+            pass_access_token=true
+            insecure_oidc_allow_unverified_email=true
+            provider="oidc"
+            redirect_url="https://dreamteams.example.com/oauth2/callback"
+            oidc_issuer_url="https://auth.dreamteams.example.com/application/o/dreamteams/"
+            scope="openid email profile offline_access"
+            code_challenge_method="S256"
+            email_domains="*"
+            whitelist_domains=["auth.dreamteams.example.com"]
+            cookie_refresh="4m"
+            cookie_expire="720h"
+            cookie_csrf_per_request=true
+            force_json_errors=true
+            skip_auth_routes=[
+                "/api/docs",
+                "/api/openapi.json",
+                "/api/competitions/preview"
+            ]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dreamteams
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

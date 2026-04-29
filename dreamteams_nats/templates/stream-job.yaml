@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dreamteams-nats-stream-{{ .Release.Revision }}
+  labels:
+    app.kubernetes.io/name: dreamteams-nats-stream
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: stream
+          image: {{ .Values.streamJob.image }}
+          command:
+            - sh
+            - -c
+            - |
+              until nats --server nats://dreamteams-nats:{{ .Values.service.clientPort }} server check connection; do
+                sleep 2
+              done
+              nats --server nats://dreamteams-nats:{{ .Values.service.clientPort }} stream add {{ .Values.stream.name }} \
+                --subjects {{ join "," .Values.stream.subjects }} \
+                --storage {{ .Values.stream.storage }} \
+                --retention {{ .Values.stream.retention }} \
+                --max-age {{ .Values.stream.maxAge }} \
+                --defaults || \
+              nats --server nats://dreamteams-nats:{{ .Values.service.clientPort }} stream edit {{ .Values.stream.name }} \
+                --subjects {{ join "," .Values.stream.subjects }} \
+                --storage {{ .Values.stream.storage }} \
+                --retention {{ .Values.stream.retention }} \
+                --max-age {{ .Values.stream.maxAge }} \
+                --defaults
+          securityContext:
+            {{- toYaml .Values.streamJob.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.streamJob.resources | nindent 12 }}

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: dreamteams-cert-issuer
+description: cert-manager issuers for DreamTeams
+type: application
+version: 0.1.0

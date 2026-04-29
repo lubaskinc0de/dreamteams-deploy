@@ -5,9 +5,7 @@ metadata:
   labels:
     {{- include "dreamteams_api.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "dreamteams_api.selectorLabels" . | nindent 6 }}
@@ -32,17 +30,29 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      initContainers:                                                                        
-        - name: wait-for-db                                                                  
-          image: busybox:1.37                                                                
-          command:                                                                           
-            - sh                                                                             
-            - -c                                                                             
-            - |                                                                              
-              until nc -z {{ .Values.env.APP_DB_HOST }} {{ .Values.env.APP_DB_PORT }}; do    
-                echo "Waiting for database..."                                               
-                sleep 2                                                                      
+      {{- with .Values.waitFor }}
+      initContainers:
+        {{- range . }}
+        - name: wait-for-{{ .name }}
+          image: busybox:1.37
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z {{ .host }} {{ .port }}; do
+                echo "Waiting for {{ .name }}..."
+                sleep 2
               done
+        {{- end }}
+      {{- end }}
       containers:
         - name: {{ include "dreamteams_api.name" . }}
           {{- with .Values.securityContext }}
@@ -55,20 +65,13 @@ spec:
           command:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.env }}
           env:
+            {{- with .Values.env }}
             {{- range $key, $value := . }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- range $key, $value := $.Values.secretEnv }}
-            - name: {{ $key }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "dreamteams_api.fullname" $ }}-secret
-                  key: {{ $key }}
             {{- end }}
-          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -85,29 +88,21 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- if or .Values.volumeMounts .Values.configFile }}
           volumeMounts:
             {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-            {{- if .Values.configFile }}
             - name: config
               mountPath: /etc/dreamteams/config.toml
-              subPath: config.toml
+              subPath: {{ .Values.config.key }}
               readOnly: true
-            {{- end }}
-          {{- end }}
-      {{- if or .Values.volumes .Values.configFile }}
       volumes:
         {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-        {{- if .Values.configFile }}
         - name: config
-          configMap:
-            name: {{ include "dreamteams_api.fullname" . }}-config
-        {{- end }}
-      {{- end }}
+          secret:
+            secretName: {{ required "config.existingSecret is required" .Values.config.existingSecret }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

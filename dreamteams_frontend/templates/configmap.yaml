@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dreamteams_frontend.fullname" . }}-nginx
+  labels:
+    {{- include "dreamteams_frontend.labels" . | nindent 4 }}
+data:
+  default.conf: |
+    {{- .Values.nginx.config | nindent 4 }}
+  config.js: |
+    window.__DREAMTEAMS_CONFIG__ = {
+      apiBase: {{ .Values.runtimeConfig.apiBase | quote }},
+      useMock: {{ .Values.runtimeConfig.useMock | quote }},
+      apiTimeout: {{ .Values.runtimeConfig.apiTimeout }},
+      apiMaxRetries: {{ .Values.runtimeConfig.apiMaxRetries }},
+      apiRetryBaseDelay: {{ .Values.runtimeConfig.apiRetryBaseDelay }},
+      apiRetryMaxDelay: {{ .Values.runtimeConfig.apiRetryMaxDelay }},
+    };
