@@ -17,6 +17,7 @@ spec:
       containers:
         - name: buckets
           image: {{ .Values.bucketJob.image }}
+          workingDir: /tmp
           command:
             - sh
             - -c
@@ -34,6 +35,8 @@ spec:
           resources:
             {{- toYaml .Values.bucketJob.resources | nindent 12 }}
           env:
+            - name: HOME
+              value: /tmp
             - name: RUSTFS_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
