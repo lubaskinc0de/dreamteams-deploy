@@ -41,9 +41,9 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: dreamteams-rustfs-secret
-                  key: access_key
+                  key: RUSTFS_ACCESS_KEY
             - name: RUSTFS_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: dreamteams-rustfs-secret
-                  key: secret_key
+                  key: RUSTFS_SECRET_KEY
