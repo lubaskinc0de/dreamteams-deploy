@@ -77,3 +77,6 @@ authentik:
           memory: 192Mi
     replica:
       replicaCount: 0
+
+dreamteamsOidc:
+  enabled: false

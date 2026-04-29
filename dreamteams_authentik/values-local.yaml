@@ -1,0 +1,12 @@
+dreamteamsOidc:
+  enabled: true
+  name: dreamteams
+  slug: dreamteams
+  clientId: local-client-id
+  clientSecret: local-client-secret
+  redirectUri: https://dreamteams.localhost/oauth2/callback
+
+authentik:
+  blueprints:
+    configMaps:
+      - dreamteams-authentik-blueprints

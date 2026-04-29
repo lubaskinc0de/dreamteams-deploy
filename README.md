@@ -55,7 +55,7 @@ The local issuer is self-signed, so browser warnings and `curl -k` are expected.
 127.0.0.1 dreamteams.localhost s3.dreamteams.localhost auth.dreamteams.localhost grafana.dreamteams.localhost
 ```
 
-Local secrets live in `local/secrets.yaml` and are intentionally fake. After initial Authentik setup, create the DreamTeams OIDC provider in Authentik and update `dreamteams-oauth2proxy-secret` locally so `client-id` and `client-secret` match that provider.
+Local secrets live in `local/secrets.yaml` and are intentionally fake. The local Authentik chart mounts a blueprint that creates the DreamTeams OIDC provider/application with matching local oauth2-proxy credentials.
 
 For local images imported directly into K3S/containerd, override the relevant Helm values in the local ArgoCD app:
 
