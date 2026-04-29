@@ -13,6 +13,10 @@ spec:
       containers:
         - name: stream
           image: {{ .Values.streamJob.image }}
+          workingDir: /tmp
+          env:
+            - name: HOME
+              value: /tmp
           command:
             - sh
             - -c
@@ -26,10 +30,8 @@ spec:
                 --retention {{ .Values.stream.retention }} \
                 --max-age {{ .Values.stream.maxAge }} \
                 --defaults || \
-              nats --server nats://dreamteams-nats:{{ .Values.service.clientPort }} stream edit {{ .Values.stream.name }} \
+              nats --server nats://dreamteams-nats:{{ .Values.service.clientPort }} stream update {{ .Values.stream.name }} \
                 --subjects {{ join "," .Values.stream.subjects }} \
-                --storage {{ .Values.stream.storage }} \
-                --retention {{ .Values.stream.retention }} \
                 --max-age {{ .Values.stream.maxAge }} \
                 --defaults
           securityContext:
