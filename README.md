@@ -45,13 +45,14 @@ just local-sync
 Local hosts:
 
 - `https://dreamteams.localhost`
+- `https://s3.dreamteams.localhost`
 - `https://auth.dreamteams.localhost/if/flow/initial-setup/`
 - `https://grafana.dreamteams.localhost`
 
 The local issuer is self-signed, so browser warnings and `curl -k` are expected. If your resolver does not handle nested `.localhost` names, add these to `/etc/hosts`:
 
 ```text
-127.0.0.1 dreamteams.localhost auth.dreamteams.localhost grafana.dreamteams.localhost
+127.0.0.1 dreamteams.localhost s3.dreamteams.localhost auth.dreamteams.localhost grafana.dreamteams.localhost
 ```
 
 Local secrets live in `local/secrets.yaml` and are intentionally fake. After initial Authentik setup, create the DreamTeams OIDC provider in Authentik and update `dreamteams-oauth2proxy-secret` locally so `client-id` and `client-secret` match that provider.
@@ -61,7 +62,7 @@ For local images imported directly into K3S/containerd, override the relevant He
 - API, migrations, exporter: `image.repository`, `image.tag`, `image.pullPolicy`.
 - Frontend: `image.repository`, `image.tag`, `image.pullPolicy`.
 
-The frontend is static, so build the frontend image with the public API base that matches the environment. For these ingress rules, same-origin works best: API traffic is expected under `/api`, oauth2-proxy under `/oauth2`, and object URLs under `/s3`.
+The frontend is static and reads public runtime settings from `/config.js`. For these ingress rules, same-origin works best: API traffic is expected under `/api`, oauth2-proxy under `/oauth2`, avatar objects under `/s3`, and signed exporter downloads under the dedicated S3 host.
 
 If you reuse an old local PVC, Postgres init scripts will not run again. Delete the local DreamTeams PVCs before a clean re-test.
 
@@ -76,7 +77,7 @@ SUPERUSER_PASSWORD=asd123321 just demo-traffic
 
 Before production deploy, update:
 
-- `apps/prod/ingress.yaml`: replace `dreamteams.example.com`, `auth.dreamteams.example.com`, and `grafana.dreamteams.example.com`.
+- `apps/prod/ingress.yaml`: replace `dreamteams.example.com`, `s3.dreamteams.example.com`, `auth.dreamteams.example.com`, and `grafana.dreamteams.example.com`.
 - `apps/prod/oauth2proxy.yaml`: replace the same hostnames in the oauth2-proxy config block.
 - SealedSecrets under `sealed-secrets/prod/` for every secret in `local/secrets.yaml`, with production values and namespaces preserved.
 

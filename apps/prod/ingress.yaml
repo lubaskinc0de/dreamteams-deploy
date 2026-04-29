@@ -23,6 +23,8 @@ spec:
           value: auth.dreamteams.example.com
         - name: grafanaHost
           value: grafana.dreamteams.example.com
+        - name: s3Host
+          value: s3.dreamteams.example.com
         - name: logout.endSessionUrl
           value: https://auth.dreamteams.example.com/application/o/dreamteams/end-session/
         - name: logout.postLogoutRedirectUrl

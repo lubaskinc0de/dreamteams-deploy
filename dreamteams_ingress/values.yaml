@@ -1,6 +1,7 @@
 appHost: dreamteams.localhost
 authHost: auth.dreamteams.localhost
 grafanaHost: grafana.dreamteams.localhost
+s3Host: s3.dreamteams.localhost
 issuerName: dreamteams-local
 
 tls:
@@ -8,6 +9,7 @@ tls:
   appSecretName: dreamteams-app-tls
   authSecretName: dreamteams-auth-tls
   grafanaSecretName: dreamteams-grafana-tls
+  s3SecretName: dreamteams-s3-tls
 
 services:
   frontend:
