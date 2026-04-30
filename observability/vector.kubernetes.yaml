@@ -31,7 +31,6 @@ transforms:
             log_msg = strip_ansi_escape_codes(string!(parsed.event))
             . = parsed
             .event = log_msg
-            .log_msg = log_msg
             .trace_id = if !is_null(.trace_id) { .trace_id } else { "" }
             .dt_container_name = dt_container_name
             .dt_namespace = dt_namespace
