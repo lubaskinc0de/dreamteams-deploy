@@ -18,7 +18,7 @@ spec:
     prefixes:
       - /s3
 ---
-{{- if .Values.apiDocsAccess.enabled }}
+{{- if and .Values.apiDocsAccess.enabled (not .Values.apiDocsAccess.blocked) }}
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -28,6 +28,18 @@ spec:
   ipAllowList:
     sourceRange:
       {{- toYaml .Values.apiDocsAccess.sourceRange | nindent 6 }}
+---
+{{- end }}
+{{- if .Values.apiDocsAccess.blocked }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-docs-deny
+  namespace: dreamteams
+spec:
+  ipAllowList:
+    sourceRange:
+      - 192.0.2.0/32
 ---
 {{- end }}
 apiVersion: traefik.io/v1alpha1

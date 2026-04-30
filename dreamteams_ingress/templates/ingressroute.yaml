@@ -80,7 +80,17 @@ spec:
         - name: {{ .Values.services.frontend.name }}
           port: {{ .Values.services.frontend.port }}
     {{- end }}
-    {{- if .Values.apiDocsAccess.enabled }}
+    {{- if .Values.apiDocsAccess.blocked }}
+    - match: Host(`{{ .Values.appHost }}`) && (Path(`/api/docs`) || PathPrefix(`/api/docs/`) || Path(`/api/openapi.json`))
+      kind: Rule
+      priority: 195
+      middlewares:
+        - name: api-docs-deny
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.api.name }}
+          port: {{ .Values.services.api.port }}
+    {{- else if .Values.apiDocsAccess.enabled }}
     - match: Host(`{{ .Values.appHost }}`) && (Path(`/api/docs`) || PathPrefix(`/api/docs/`) || Path(`/api/openapi.json`))
       kind: Rule
       priority: 195
