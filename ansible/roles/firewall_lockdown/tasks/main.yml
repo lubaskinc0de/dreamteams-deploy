@@ -1,0 +1,94 @@
+- name: Populate service facts
+  ansible.builtin.service_facts:
+
+- name: Remove broad UFW rules added by k3s prerequisites
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    delete: true
+  loop:
+    - { port: "6443", proto: "tcp" }
+    - { port: "2379:2381", proto: "tcp" }
+    - { port: "5001", proto: "tcp" }
+    - { port: "8472", proto: "udp" }
+    - { port: "10250", proto: "tcp" }
+    - { port: "51820", proto: "udp" }
+    - { port: "51821", proto: "udp" }
+  failed_when: false
+  when:
+    - ansible_facts.services['ufw'] is defined
+    - ansible_facts.services['ufw'].state == 'running'
+
+- name: Keep public SSH and ingress ports open
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: tcp
+    comment: "{{ item.comment }}"
+  loop:
+    - { port: "22", comment: "SSH" }
+    - { port: "80", comment: "HTTP - Traefik" }
+    - { port: "443", comment: "HTTPS - Traefik" }
+
+- name: Allow Kubernetes API from cluster nodes
+  community.general.ufw:
+    rule: allow
+    port: "6443"
+    proto: tcp
+    src: "{{ hostvars[item].k3s_firewall_ip | default(hostvars[item].ansible_host | default(item)) }}"
+    comment: "k3s API from cluster node"
+  loop: "{{ groups['server'] + (groups['agent'] | default([])) }}"
+  when: inventory_hostname in groups['server']
+
+- name: Allow optional external Kubernetes API admin CIDRs
+  community.general.ufw:
+    rule: allow
+    port: "6443"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "k3s API admin CIDR"
+  loop: "{{ k3s_api_allowed_cidrs }}"
+  when: inventory_hostname in groups['server']
+
+- name: Allow embedded etcd between server nodes
+  community.general.ufw:
+    rule: allow
+    port: "2379:2380"
+    proto: tcp
+    src: "{{ hostvars[item].k3s_firewall_ip | default(hostvars[item].ansible_host | default(item)) }}"
+    comment: "k3s embedded etcd"
+  loop: "{{ groups['server'] }}"
+  when:
+    - inventory_hostname in groups['server']
+    - groups['server'] | length > 1
+
+- name: Allow inter-node k3s traffic only from cluster nodes
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.0.port }}"
+    proto: "{{ item.0.proto }}"
+    src: "{{ hostvars[item.1].k3s_firewall_ip | default(hostvars[item.1].ansible_host | default(item.1)) }}"
+    comment: "k3s inter-node"
+  loop: "{{ inter_node_ports | product(groups['server'] + (groups['agent'] | default([]))) | list }}"
+  vars:
+    inter_node_ports:
+      - { port: "5001", proto: "tcp" }
+      - { port: "8472", proto: "udp" }
+      - { port: "10250", proto: "tcp" }
+      - { port: "51820", proto: "udp" }
+      - { port: "51821", proto: "udp" }
+
+- name: Allow k3s pod and service CIDRs
+  community.general.ufw:
+    rule: allow
+    src: "{{ item }}"
+    comment: "k3s cluster CIDR"
+  loop:
+    - "{{ k3s_pod_cidr }}"
+    - "{{ k3s_service_cidr }}"
+
+- name: Ensure UFW is enabled
+  community.general.ufw:
+    state: enabled
+    logging: on

@@ -1,7 +1,7 @@
 oauth2-proxy:
   image:
     tag: v7.11.0-alpine
-  replicaCount: 1
+  replicaCount: 2
   config:
     existingSecret: dreamteams-oauth2proxy-secret
     configFile: |

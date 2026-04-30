@@ -1,26 +1,29 @@
 # Update apt package index and upgrade all installed packages to latest versions.            
 # upgrade: dist also upgrades kernel and handles dependency changes.                       
 - name: Update and upgrade packages                                                          
-  apt:                                                                                       
+  ansible.builtin.apt:
     update_cache: yes
     upgrade: dist
 
 # Install tools we need: curl/ca-certificates for downloads,
 # git for cloning repos, ufw for firewall, htop for monitoring.
 - name: Install essential packages
-  apt:
+  ansible.builtin.apt:
     name:
       - curl
       - git
       - ufw
       - ca-certificates
       - htop
+      - fail2ban
+      - python3-systemd
+      - unattended-upgrades
     state: present
 
 # Create a non-root user that will own and manage the cluster.
 # Using root for day-to-day operations is bad practice.
 - name: Create cluster management user
-  user:
+  ansible.builtin.user:
     name: "{{ cluster_user }}"
     shell: /bin/bash
     create_home: yes
@@ -29,7 +32,7 @@
 # Add your local SSH public key to the new user's authorized_keys.
 # This is how you'll SSH in as that user.
 - name: Add SSH public key for cluster user
-  authorized_key:
+  ansible.posix.authorized_key:
     user: "{{ cluster_user }}"
     key: "{{ ssh_public_key }}"
     state: present
@@ -37,24 +40,64 @@
 # Give the cluster user passwordless sudo so they can run kubectl,
 # helm, and other privileged commands without entering a password.
 - name: Grant passwordless sudo to cluster user
-  copy:
+  ansible.builtin.copy:
     dest: "/etc/sudoers.d/{{ cluster_user }}"
     content: "{{ cluster_user }} ALL=(ALL) NOPASSWD:ALL\n"
     mode: '0440'
     validate: visudo -cf %s
 
+- name: Configure unattended upgrades schedule
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    mode: '0644'
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+
+- name: Configure unattended upgrades behavior
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/52unattended-upgrades-dreamteams
+    mode: '0644'
+    content: |
+      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+      Unattended-Upgrade::Automatic-Reboot "false";
+      Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+
+- name: Configure fail2ban SSH jail
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/sshd.local
+    mode: '0644'
+    content: |
+      [sshd]
+      enabled = true
+      backend = systemd
+      port = ssh
+      maxretry = 5
+      findtime = 10m
+      bantime = 1h
+      mode = normal
+  notify: Restart fail2ban
+
+- name: Enable fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+
 # Set UFW default: block all incoming connections, allow all outgoing.
 - name: Set UFW default policies
-  ufw:
+  community.general.ufw:
     direction: "{{ item.direction }}"
     policy: "{{ item.policy }}"
   loop:
     - { direction: incoming, policy: deny }
     - { direction: outgoing, policy: allow }
 
-# Open only the ports we actually need.
-- name: Allow required ports through UFW
-  ufw:
+# Public entrypoints. Traefik's ServiceLB can bind 80/443 on any node.
+- name: Allow public SSH and ingress ports through UFW
+  community.general.ufw:
     rule: allow
     port: "{{ item.port }}"
     proto: tcp
@@ -63,30 +106,139 @@
     - { port: "22",   comment: "SSH" }
     - { port: "80",   comment: "HTTP - Traefik" }
     - { port: "443",  comment: "HTTPS - Traefik" }
-    - { port: "6443", comment: "k3s API server" }
+
+- name: Allow Kubernetes API to server nodes
+  community.general.ufw:
+    rule: allow
+    port: "6443"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "k3s API server"
+  loop: "{{ k3s_api_allowed_cidrs }}"
+  when: inventory_hostname in groups['server']
+
+- name: Allow Kubernetes API from cluster nodes
+  community.general.ufw:
+    rule: allow
+    port: "6443"
+    proto: tcp
+    src: "{{ hostvars[item].k3s_firewall_ip | default(hostvars[item].ansible_host | default(item)) }}"
+    comment: "k3s API from cluster node"
+  loop: "{{ groups['server'] + (groups['agent'] | default([])) }}"
+  when: inventory_hostname in groups['server']
+
+- name: Allow embedded etcd between server nodes
+  community.general.ufw:
+    rule: allow
+    port: "2379:2380"
+    proto: tcp
+    src: "{{ hostvars[item].k3s_firewall_ip | default(hostvars[item].ansible_host | default(item)) }}"
+    comment: "k3s embedded etcd"
+  loop: "{{ groups['server'] }}"
+  when:
+    - inventory_hostname in groups['server']
+    - groups['server'] | length > 1
+
+- name: Allow Flannel VXLAN between cluster nodes
+  community.general.ufw:
+    rule: allow
+    port: "8472"
+    proto: udp
+    src: "{{ hostvars[item].k3s_firewall_ip | default(hostvars[item].ansible_host | default(item)) }}"
+    comment: "k3s flannel vxlan"
+  loop: "{{ groups['server'] + (groups['agent'] | default([])) }}"
+
+- name: Allow kubelet metrics between cluster nodes
+  community.general.ufw:
+    rule: allow
+    port: "10250"
+    proto: tcp
+    src: "{{ hostvars[item].k3s_firewall_ip | default(hostvars[item].ansible_host | default(item)) }}"
+    comment: "k3s kubelet metrics"
+  loop: "{{ groups['server'] + (groups['agent'] | default([])) }}"
+
+- name: Allow k3s pod and service CIDRs
+  community.general.ufw:
+    rule: allow
+    src: "{{ item }}"
+    comment: "k3s cluster CIDR"
+  loop:
+    - "{{ k3s_pod_cidr }}"
+    - "{{ k3s_service_cidr }}"
 
 # Enable UFW. logging: on writes blocked connection attempts to syslog.
 - name: Enable UFW
-  ufw:
+  community.general.ufw:
     state: enabled
     logging: on
 
 # Disable SSH password login — keys only from now on.
 # Make sure your SSH key is in authorized_keys before this runs.
 - name: Disable SSH password authentication
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: "^#?PasswordAuthentication"
     line: "PasswordAuthentication no"
     state: present
   notify: Restart sshd
 
+- name: Find SSH daemon drop-in configs
+  ansible.builtin.find:
+    paths: /etc/ssh/sshd_config.d
+    patterns: "*.conf"
+    file_type: file
+  register: sshd_dropin_configs
+  failed_when: false
+
+- name: Disable password authentication in SSH drop-in configs
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '^\s*PasswordAuthentication\s+.*$'
+    replace: "PasswordAuthentication no"
+  loop: "{{ sshd_dropin_configs.files | default([]) }}"
+  notify: Restart sshd
+
 # Allow root login only via SSH key, not password.
 # prohibit-password means: root can use keys but not passwords.
 - name: Disable root password login
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: "^#?PermitRootLogin"
     line: "PermitRootLogin prohibit-password"
     state: present
   notify: Restart sshd
+
+- name: Restrict root login in SSH drop-in configs
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '^\s*PermitRootLogin\s+.*$'
+    replace: "PermitRootLogin prohibit-password"
+  loop: "{{ sshd_dropin_configs.files | default([]) }}"
+  notify: Restart sshd
+
+- name: Write SSH hardening drop-in
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/99-dreamteams-hardening.conf
+    mode: '0644'
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin prohibit-password
+  notify: Restart sshd
+
+- name: Validate SSH daemon configuration
+  ansible.builtin.command:
+    cmd: /usr/sbin/sshd -t
+  changed_when: false
+
+- name: Check if reboot is required
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: vds_reboot_required
+
+- name: Schedule reboot after package upgrade
+  ansible.builtin.command:
+    cmd: /bin/true
+  changed_when: true
+  notify: Reboot node after package upgrade
+  when: vds_reboot_required.stat.exists

@@ -1,134 +1,173 @@
-# Download and install Helm package manager.
-# creates: makes this idempotent — skips if helm is already installed.
 - name: Install Helm
-  shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-  args:
+  ansible.builtin.shell:
+    cmd: set -o pipefail && curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    executable: /bin/bash
     creates: /usr/local/bin/helm
 
-# Install ArgoCD CLI so we can interact with ArgoCD from the server.
 - name: Install ArgoCD CLI
-  get_url:
-    url: "https://github.com/argoproj/argo-cd/releases/download/{{ argocd_version }}/argocd-linux-amd64"
+  ansible.builtin.get_url:
+    url: "https://github.com/argoproj/argo-cd/releases/download/{{ argocd_cli_version }}/argocd-linux-amd64"
     dest: /usr/local/bin/argocd
     mode: '0755'
 
-# Create the argocd namespace where ArgoCD will be installed.
-# --dry-run=client -o yaml | kubectl apply -f - is the idempotent way to create a namespace.
-# It won't fail if the namespace already exists.
-- name: Create argocd namespace
-  shell: kubectl create namespace {{ argocd_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+- name: Create bootstrap namespaces
+  ansible.builtin.command:
+    cmd: kubectl create namespace {{ item }} --dry-run=client -o yaml
+  register: bootstrap_namespace
+  changed_when: false
+  loop:
+    - "{{ argocd_namespace }}"
+    - "{{ app_namespace }}"
+    - "{{ authentik_namespace }}"
+    - "{{ observability_namespace }}"
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-# Create the app namespace where your services will be deployed.
-- name: Create app namespace
-  shell: kubectl create namespace {{ app_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+- name: Apply bootstrap namespaces
+  ansible.builtin.command:
+    cmd: kubectl apply -f -
+    stdin: "{{ item.stdout }}"
+  loop: "{{ bootstrap_namespace.results }}"
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-# Add the ArgoCD Helm repository so we can install it.
 - name: Add ArgoCD Helm repo
-  shell: helm repo add argo https://argoproj.github.io/argo-helm && helm repo update
+  ansible.builtin.command:
+    cmd: helm repo add argo https://argoproj.github.io/argo-helm --force-update
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-# Install ArgoCD using Helm.
-# --wait blocks until all ArgoCD pods are running.
-# failed_when handles the case where ArgoCD is already installed — not an error.
-- name: Install ArgoCD
-  shell: >
-    helm install argocd argo/argo-cd
-    --namespace {{ argocd_namespace }}
-    --version {{ argocd_version }}
-    --set server.service.type=ClusterIP
-    --wait
-  register: argocd_install
-  failed_when: argocd_install.rc != 0 and 'already exists' not in argocd_install.stderr
+- name: Update Helm repos
+  ansible.builtin.command:
+    cmd: helm repo update
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-# Wait until ArgoCD server deployment is fully available.
+- name: Install or upgrade ArgoCD
+  ansible.builtin.command:
+    cmd: >
+      helm upgrade --install argocd argo/argo-cd
+      --namespace {{ argocd_namespace }}
+      --create-namespace
+      --version {{ argocd_chart_version }}
+      --set server.service.type=ClusterIP
+      --wait
+      --timeout 10m
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
 - name: Wait for ArgoCD server to be ready
-  shell: kubectl wait --for=condition=available deployment/argocd-server -n {{ argocd_namespace }} --timeout=120s
+  ansible.builtin.command:
+    cmd: kubectl wait --for=condition=available deployment/argocd-server -n {{ argocd_namespace }} --timeout=180s
   retries: 3
   delay: 15
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-# Get the initial admin password that ArgoCD generates on first install.
-# register: saves the output into a variable we use in the next task.
-- name: Get ArgoCD admin password
-  shell: kubectl get secret argocd-initial-admin-secret -n {{ argocd_namespace }} -o jsonpath="{.data.password}" | base64 -d
-  register: argocd_password
-
-# Log in to ArgoCD CLI using the admin password.
-# --port-forward makes the CLI connect via kubectl port-forward internally.
-# --insecure skips TLS certificate verification.
-- name: Login to ArgoCD
-  shell: >
-    argocd login localhost
-    --username admin
-    --password "{{ argocd_password.stdout }}"
-    --insecure
-    --port-forward
-    --port-forward-namespace {{ argocd_namespace }}
-
-# Create the GHCR image pull secret so k8s can pull your private Docker images.
-# --dry-run=client -o yaml | kubectl apply -f - makes this idempotent.
-- name: Create GHCR image pull secret
-  shell: >
-    kubectl create secret docker-registry ghcr-secret
-    --docker-server=ghcr.io
-    --docker-username={{ ghcr_username }}
-    --docker-password={{ ghcr_token }}
-    --namespace {{ app_namespace }}
-    --dry-run=client -o yaml | kubectl apply -f -
-
-# Write the SSH private key to a temp file so ArgoCD and git can use it.
-# mode 0600 means only the owner can read it (required for SSH keys).
-- name: Copy SSH deploy key
-  copy:
-    content: "{{ ssh_private_key }}"
-    dest: /tmp/argocd-deploy-key
+- name: Render ArgoCD deploy repository secret
+  ansible.builtin.template:
+    src: repository-secret.yaml.j2
+    dest: /tmp/argocd-deploy-repo-secret.yaml
     mode: '0600'
+  no_log: true
 
-# Clone the deploy repo so we can apply the apps/ directory.
-- name: Clone deploy repo
-  git:
-    repo: "{{ deploy_repo }}"
-    dest: /tmp/dreamteams-deploy
-    key_file: /tmp/argocd-deploy-key
-    accept_hostkey: yes
+- name: Apply ArgoCD deploy repository secret
+  ansible.builtin.command:
+    cmd: kubectl apply -f /tmp/argocd-deploy-repo-secret.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  no_log: true
 
-# Add the deploy repo to ArgoCD using the SSH key.
-# ArgoCD stores the key internally and uses it to watch the repo for changes.
-- name: Add deploy repo to ArgoCD
-  shell: >
-    argocd repo add {{ deploy_repo }}
-    --ssh-private-key-path /tmp/argocd-deploy-key
-    --insecure-skip-server-verification
-    --port-forward
-    --port-forward-namespace {{ argocd_namespace }}
+- name: Remove rendered ArgoCD deploy repository secret
+  ansible.builtin.file:
+    path: /tmp/argocd-deploy-repo-secret.yaml
+    state: absent
+  no_log: true
 
-# Remove the SSH key from disk — ArgoCD has stored it internally, no longer needed.
-- name: Remove SSH deploy key from disk
-  file:
-    path: /tmp/argocd-deploy-key
+- name: Create temporary ArgoCD application manifest directory
+  ansible.builtin.file:
+    path: /tmp/dreamteams-prod-apps
+    state: directory
+    mode: '0700'
+
+- name: Render production ArgoCD application manifests
+  ansible.builtin.copy:
+    dest: "/tmp/dreamteams-prod-apps/{{ item | basename }}"
+    mode: '0600'
+    content: >-
+      {{
+        lookup('ansible.builtin.file', item)
+        | replace('git@github.com:lubaskinc0de/dreamteams-deploy.git', deploy_repo)
+        | replace('targetRevision: HEAD', 'targetRevision: ' ~ deploy_repo_revision)
+        | replace('auth.dreamteams.example.com', auth_host)
+        | replace('grafana.dreamteams.example.com', grafana_host)
+        | replace('s3.dreamteams.example.com', s3_host)
+        | replace('dreamteams.example.com', app_host)
+        | replace('lubaskincorporation@gmail.com', letsencrypt_email)
+      }}
+  loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/../' ~ bootstrap_apps_path ~ '/*.yaml') }}"
+
+- name: Apply production ArgoCD applications
+  ansible.builtin.command:
+    cmd: kubectl apply -f /tmp/dreamteams-prod-apps
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Remove rendered ArgoCD application manifests
+  ansible.builtin.file:
+    path: /tmp/dreamteams-prod-apps
     state: absent
 
-# Apply all ArgoCD Application manifests — this tells ArgoCD to start
-# managing and deploying your Helm charts.
-- name: Apply ArgoCD applications
-  shell: kubectl apply -f /tmp/dreamteams-deploy/apps/
-
-# Copy k3s kubeconfig to the cluster user's home so they can run kubectl
-# without switching to root. k3s writes the config to /etc/rancher/k3s/k3s.yaml
-# which is only readable by root by default.
 - name: Create .kube directory for cluster user
-  file:
+  ansible.builtin.file:
     path: /home/{{ cluster_user }}/.kube
     state: directory
     owner: "{{ cluster_user }}"
     mode: '0700'
 
 - name: Copy kubeconfig to cluster user
-  copy:
+  ansible.builtin.copy:
     src: /etc/rancher/k3s/k3s.yaml
     dest: /home/{{ cluster_user }}/.kube/config
     remote_src: yes
     owner: "{{ cluster_user }}"
     mode: '0600'
 
-# Secrets are managed via Sealed Secrets — the SealedSecret manifests in
-# sealed-secrets/local/ (or prod/) are applied by ArgoCD automatically.
-# No manual secret injection needed here.
+- name: Check if just package is available
+  ansible.builtin.command:
+    cmd: apt-cache policy just
+  register: just_package_policy
+  changed_when: false
+  failed_when: false
+
+- name: Install just when available from apt
+  ansible.builtin.apt:
+    name: just
+    state: present
+  when:
+    - just_package_policy.rc == 0
+    - "'Candidate: (none)' not in just_package_policy.stdout"
+
+- name: Create cluster ops helper directory
+  ansible.builtin.file:
+    path: /home/{{ cluster_user }}/cluster-ops
+    state: directory
+    owner: "{{ cluster_user }}"
+    group: "{{ cluster_user }}"
+    mode: '0755'
+
+- name: Render control-plane ops Justfile
+  ansible.builtin.template:
+    src: control-plane.Justfile.j2
+    dest: /home/{{ cluster_user }}/cluster-ops/Justfile
+    owner: "{{ cluster_user }}"
+    group: "{{ cluster_user }}"
+    mode: '0644'
+
+- name: Link ops Justfile from cluster user home
+  ansible.builtin.file:
+    src: /home/{{ cluster_user }}/cluster-ops/Justfile
+    dest: /home/{{ cluster_user }}/Justfile
+    state: link
+    owner: "{{ cluster_user }}"
+    group: "{{ cluster_user }}"

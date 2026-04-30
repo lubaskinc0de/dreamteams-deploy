@@ -21,3 +21,6 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - PruneLast=true
+      - SkipDryRunOnMissingResource=true

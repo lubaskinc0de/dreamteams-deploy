@@ -86,6 +86,142 @@ Before production deploy, update:
 - `apps/prod/oauth2proxy.yaml`: replace the same hostnames in the oauth2-proxy config block.
 - SealedSecrets under `sealed-secrets/prod/` for every secret in `local/secrets.yaml`, with production values and namespaces preserved.
 
+### Ansible Bootstrap
+
+The Ansible bootstrap always applies `apps/prod/`. Kubernetes API is not opened to the public internet by default; manage the cluster over SSH from the first control-plane node.
+
+From a fresh VDS:
+
+1. Buy a server with Ubuntu/Debian and public IPv4. At the provider firewall level, allow at least TCP `22`, `80`, and `443`.
+2. Point DNS `A` records to the server IP: `dreamteams.example.com`, `auth.dreamteams.example.com`, `s3.dreamteams.example.com`, and `grafana.dreamteams.example.com`.
+3. Generate an SSH key if needed:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/dreamteams_prod
+```
+
+4. Fill `ansible/inventory/hosts.yml`.
+   - Put 1, 3, 5, or 7 control-plane nodes under `server`.
+   - Put worker nodes under `agent`.
+   - If nodes use private networking, set `k3s_firewall_ip` per node and optionally `k3s_api_endpoint` to a VIP/load balancer.
+5. Set production hosts in `ansible/group_vars/all.yaml`: `app_host`, `auth_host`, `s3_host`, `grafana_host`, and `letsencrypt_email`.
+6. If `deploy_repo` is an SSH URL, put the deploy key in Ansible Vault as `deploy_repo_ssh_private_key` or `ssh_private_key`:
+
+```bash
+ansible-vault edit ansible/group_vars/secrets.yml
+```
+
+7. Export the SSH connection/public key values:
+
+```bash
+export ANSIBLE_USER=root
+export ANSIBLE_PRIVATE_KEY_FILE=~/.ssh/dreamteams_prod
+export SSH_PUBLIC_KEY="$(cat ~/.ssh/dreamteams_prod.pub)"
+```
+
+8. Install collections:
+
+```bash
+just ansible-install
+```
+
+9. Run bootstrap.
+
+If the provider already installed your SSH public key for root:
+
+```bash
+just prod-bootstrap
+```
+
+If the provider only gave a root SSH password:
+
+```bash
+just prod-bootstrap-password
+```
+
+The playbook creates the `deploy` user, installs your SSH key, disables SSH password login, enables UFW/fail2ban/unattended-upgrades, installs k3s, tightens the firewall, installs ArgoCD, and applies `apps/prod/`.
+
+For HA with embedded etcd, k3s requires an odd number of server nodes. Without an external API load balancer, the first server is used as `api_endpoint`.
+
+### First SealedSecrets Run
+
+For a brand-new cluster, SealedSecrets must be sealed with a certificate that the target cluster's controller can decrypt. If `sealed-secrets/prod/` already contains valid prod SealedSecrets, run the normal bootstrap above.
+
+If this is the first ever production cluster and prod SealedSecrets do not exist yet, run an infrastructure bootstrap first:
+
+```bash
+just prod-bootstrap-infra
+```
+
+or, with a provider root password:
+
+```bash
+just prod-bootstrap-infra-password
+```
+
+That run installs k3s, ArgoCD, cert-manager, and the SealedSecrets controller, but application pods may wait for missing secrets. Fetch the SealedSecrets cert from the control-plane node:
+
+```bash
+just prod-fetch-cert-ssh YOUR_SERVER_IP /tmp/prod-cert.pem
+```
+
+Seal real production secrets with that cert, commit/push them to `sealed-secrets/prod/`, then rerun:
+
+```bash
+just prod-bootstrap
+```
+
+or sync from the control-plane node:
+
+```bash
+ssh deploy@YOUR_SERVER_IP
+just argocd-refresh
+just argocd-sync-all
+```
+
+### Control-Plane Operations
+
+After bootstrap, SSH into the first control-plane node as `deploy`. Ansible installs a small ops `Justfile` at `/home/deploy/cluster-ops/Justfile` and links it as `/home/deploy/Justfile`.
+
+Useful commands on the server:
+
+```bash
+ssh deploy@YOUR_SERVER_IP
+just nodes
+just pods
+just apps
+just ingress
+just secrets-status
+just firewall
+```
+
+### ArgoCD UI
+
+ArgoCD is intentionally not exposed publicly. Open it through an SSH tunnel from your local machine:
+
+```bash
+just prod-argocd-tunnel YOUR_SERVER_IP
+```
+
+Then open:
+
+```text
+https://localhost:8080
+```
+
+The browser will warn about the local TLS certificate; accept it for this local tunnel. Login is `admin`. Print the password from your local machine:
+
+```bash
+just prod-argocd-password YOUR_SERVER_IP
+```
+
+Manual tunnel equivalent:
+
+```bash
+ssh -L 127.0.0.1:8080:127.0.0.1:8080 deploy@YOUR_SERVER_IP \
+  'kubectl -n argocd port-forward svc/argocd-server 8080:443 --address 127.0.0.1'
+```
+
 Production secret names expected by the charts:
 
 - `dreamteams-api-config`
@@ -99,6 +235,7 @@ Production secret names expected by the charts:
 - `authentik-env` in namespace `authentik`
 - `authentik-postgres-secret` in namespace `authentik`
 - `grafana-admin` in namespace `observability`
+- `ghcr-secret` in namespace `dreamteams` if GHCR images are private
 
 Seal production secrets after the Sealed Secrets controller is available:
 

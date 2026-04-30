@@ -1,21 +1,58 @@
-# k3s version to install on the server                                                     
-k3s_version: "v1.32.2+k3s1"                                                                  
-                                                                                              
-# ArgoCD version to install                                                                  
-argocd_version: "v2.14.3"                                                                    
-                                                                                              
+# k3s version matching the currently observed local cluster.
+k3s_version: "v1.34.5+k3s1"
+
+# ArgoCD Helm chart / CLI versions matching the currently observed cluster.
+argocd_chart_version: "9.5.9"
+argocd_cli_version: "v3.3.8"
+
 # Kubernetes namespace where ArgoCD lives
 argocd_namespace: argocd
 
 # Kubernetes namespace where your app services run
 app_namespace: dreamteams
+authentik_namespace: authentik
+observability_namespace: observability
 
 # Your deploy repo (ArgoCD watches this)
 deploy_repo: git@github.com:lubaskinc0de/dreamteams-deploy.git
+deploy_repo_revision: HEAD
+
+# Always bootstrap production ArgoCD Applications.
+bootstrap_apps_path: apps/prod
+
+# Production public hosts. Replace before running against a real VDS cluster.
+app_host: dreamteams.example.com
+auth_host: "auth.{{ app_host }}"
+s3_host: "s3.{{ app_host }}"
+grafana_host: "grafana.{{ app_host }}"
+letsencrypt_email: lubaskincorporation@gmail.com
 
 # Linux user created for managing the k3s cluster.
 cluster_user: deploy
 
-# Your local SSH public key — added to the cluster user's authorized_keys.
-# Get it with: cat ~/.ssh/id_ed25519.pub
-ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAYd/QhHYQRdN/STbkfam11ZfAcKQv8yrrIWATGj5yQY structnull@yandex.ru"
+# Public key added to the cluster user's authorized_keys.
+# Either export SSH_PUBLIC_KEY or override this in an encrypted vars file.
+ssh_public_key: "{{ lookup('env', 'SSH_PUBLIC_KEY') | default('', true) }}"
+
+# Keep UFW enabled, but allow k3s node-to-node traffic only from cluster nodes.
+k3s_pod_cidr: "10.42.0.0/16"
+k3s_service_cidr: "10.43.0.0/16"
+# Optional external admin CIDRs for Kubernetes API 6443.
+# Leave empty when you manage the cluster over SSH or an SSH tunnel.
+k3s_api_allowed_cidrs: []
+
+# Application/runtime secrets are managed by SealedSecrets in sealed-secrets/prod,
+# not by Ansible.
+prod_required_secret_names:
+  - dreamteams-api-config
+  - dreamteams-exporter-config
+  - dreamteams-migrations-config
+  - dreamteams-postgres-secret
+  - dreamteams-postgres-initdb
+  - dreamteams-pgbouncer-secret
+  - dreamteams-rustfs-secret
+  - dreamteams-oauth2proxy-secret
+  - authentik-env
+  - authentik-postgres-secret
+  - grafana-admin
+  - ghcr-secret

@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "dreamteams_api.fullname" . }}-5xx-rate
+  labels:
+    {{- include "dreamteams_api.labels" . | nindent 4 }}
+spec:
+  metrics:
+    - name: http-5xx-rate
+      initialDelay: 60s
+      interval: 30s
+      count: 10
+      failureLimit: 1
+      successCondition: result[0] < 5
+      failureCondition: result[0] >= 5
+      provider:
+        prometheus:
+          address: http://prometheus.observability:9090
+          query: |
+            (
+              ((sum(increase(http_server_duration_milliseconds_count{service_name="dreamteams"}[5m])) or vector(0)) >= bool 20)
+              *
+              (
+                ((sum(rate(http_server_duration_milliseconds_count{service_name="dreamteams", http_status_code=~"5.."}[5m])) or vector(0))
+                /
+                clamp_min((sum(rate(http_server_duration_milliseconds_count{service_name="dreamteams"}[5m])) or vector(0)), 0.001))
+                * 100
+              )
+            )

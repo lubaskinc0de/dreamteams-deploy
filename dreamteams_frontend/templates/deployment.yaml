@@ -1,11 +1,23 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: {{ include "dreamteams_frontend.fullname" . }}
   labels:
     {{- include "dreamteams_frontend.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 3
+  progressDeadlineSeconds: 600
+  minReadySeconds: 5
+  strategy:
+    canary:
+      maxSurge: 1
+      maxUnavailable: 0
+      steps:
+        - setWeight: 50
+        - pause:
+            duration: 60s
+        - setWeight: 100
   selector:
     matchLabels:
       {{- include "dreamteams_frontend.selectorLabels" . | nindent 6 }}

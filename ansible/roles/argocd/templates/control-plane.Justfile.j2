@@ -1,0 +1,117 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+argocd_namespace := "{{ argocd_namespace }}"
+app_namespace := "{{ app_namespace }}"
+authentik_namespace := "{{ authentik_namespace }}"
+observability_namespace := "{{ observability_namespace }}"
+argocd_flags := "--port-forward --port-forward-namespace " + argocd_namespace
+
+default:
+    @just --list
+
+# Show cluster nodes.
+nodes:
+    kubectl get nodes -o wide
+
+# Show pods. Usage: just pods [namespace]
+pods ns="":
+    {% raw %}if [ -z "{{ ns }}" ]; then kubectl get pods -A -o wide; else kubectl get pods -n "{{ ns }}" -o wide; fi{% endraw %}
+
+# Show services. Usage: just svc [namespace]
+svc ns="":
+    {% raw %}if [ -z "{{ ns }}" ]; then kubectl get svc -A -o wide; else kubectl get svc -n "{{ ns }}" -o wide; fi{% endraw %}
+
+# Show recent events. Usage: just events [namespace]
+events ns="":
+    {% raw %}if [ -z "{{ ns }}" ]; then kubectl get events -A --sort-by=.lastTimestamp; else kubectl get events -n "{{ ns }}" --sort-by=.lastTimestamp; fi{% endraw %}
+
+# Show ArgoCD Applications.
+apps:
+    kubectl get applications -n {% raw %}{{ argocd_namespace }}{% endraw %}
+
+# Show one ArgoCD Application as YAML. Usage: just app dreamteams-api
+app name:
+    {% raw %}kubectl get application "{{ name }}" -n {{ argocd_namespace }} -o yaml{% endraw %}
+
+# Print initial ArgoCD admin password.
+argocd-password:
+    {% raw %}kubectl get secret argocd-initial-admin-secret -n {{ argocd_namespace }} -o jsonpath='{.data.password}' | base64 -d && echo{% endraw %}
+
+# Serve ArgoCD UI on control-plane loopback for SSH tunneling.
+argocd-web port="8080":
+    kubectl -n {{ argocd_namespace }} port-forward svc/argocd-server {{ '{{ port }}' }}:443 --address 127.0.0.1
+
+# Login ArgoCD CLI through kubectl port-forward.
+argocd-login:
+    #!/usr/bin/env bash
+    {% raw %}password="$(kubectl get secret argocd-initial-admin-secret -n {{ argocd_namespace }} -o jsonpath='{.data.password}' | base64 -d)"
+    argocd login localhost --username admin --password "$password" --insecure {{ argocd_flags }}{% endraw %}
+
+# List ArgoCD apps through port-forward.
+argocd-list:
+    {% raw %}argocd app list {{ argocd_flags }}{% endraw %}
+
+# Sync one ArgoCD app. Usage: just argocd-sync dreamteams-api
+argocd-sync name:
+    {% raw %}argocd app sync "{{ name }}" {{ argocd_flags }}{% endraw %}
+
+# Wait for one ArgoCD app. Usage: just argocd-wait dreamteams-api [timeout]
+argocd-wait name timeout="600":
+    {% raw %}argocd app wait "{{ name }}" --sync --health --timeout "{{ timeout }}" {{ argocd_flags }}{% endraw %}
+
+# Sync and wait all ArgoCD apps.
+argocd-sync-all:
+    #!/usr/bin/env bash
+    {% raw %}apps="$(kubectl get applications -n {{ argocd_namespace }} -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')"
+    for app in $apps; do
+      argocd app sync "$app" {{ argocd_flags }}
+    done
+    for app in $apps; do
+      argocd app wait "$app" --sync --health --timeout 900 {{ argocd_flags }}
+    done{% endraw %}
+
+# Force ArgoCD to re-read Git/Helm sources.
+argocd-refresh:
+    {% raw %}kubectl annotate applications.argoproj.io -n {{ argocd_namespace }} --all argocd.argoproj.io/refresh=hard --overwrite{% endraw %}
+
+# Show ingress, cert-manager and TLS state.
+ingress:
+    kubectl get ingressroute,certificate,clusterissuer,issuer -A
+
+# Show SealedSecrets and produced Kubernetes Secrets.
+secrets-status:
+    kubectl get sealedsecrets.bitnami.com -A
+    kubectl get secrets -n {{ app_namespace }}
+    kubectl get secrets -n {{ authentik_namespace }}
+    kubectl get secrets -n {{ observability_namespace }}
+
+# Fetch SealedSecrets public cert.
+sealed-cert output="/tmp/prod-cert.pem":
+    kubectl get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key=active -o jsonpath='{.items[0].data.tls\.crt}' | base64 -d > "{{ '{{ output }}' }}"
+    echo "saved to {{ '{{ output }}' }}"
+
+# Follow logs by selector. Usage: just logs dreamteams app.kubernetes.io/name=dreamteams-api
+logs ns selector tail="200":
+    {% raw %}kubectl logs -n "{{ ns }}" -l "{{ selector }}" --tail "{{ tail }}" -f{% endraw %}
+
+# Restart a deployment. Usage: just rollout-restart dreamteams deploy/dreamteams-api
+rollout-restart ns target:
+    {% raw %}kubectl rollout restart -n "{{ ns }}" "{{ target }}"{% endraw %}
+
+# Show rollout status. Usage: just rollout-status dreamteams deploy/dreamteams-api
+rollout-status ns target:
+    {% raw %}kubectl rollout status -n "{{ ns }}" "{{ target }}"{% endraw %}
+
+# Show resource usage when metrics-server is ready.
+top:
+    kubectl top nodes
+    kubectl top pods -A
+
+# Show firewall rules on this node.
+firewall:
+    sudo ufw status verbose
+
+# Show kubeconfig location and current context.
+kubeconfig:
+    echo "$HOME/.kube/config"
+    kubectl config current-context || true

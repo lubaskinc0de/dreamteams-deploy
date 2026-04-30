@@ -1,6 +1,19 @@
 # Restart sshd to apply config changes.
 # This runs once at the end even if notified multiple times.
 - name: Restart sshd
-  service:
-    name: sshd
+  ansible.builtin.service:
+    name: "{{ 'sshd' if ansible_facts.os_family in ['RedHat', 'Suse', 'Archlinux'] else 'ssh' }}"
     state: restarted
+
+- name: Restart fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted
+
+- name: Reboot node after package upgrade
+  ansible.builtin.reboot:
+    msg: "Rebooting after package upgrade"
+    connect_timeout: 5
+    reboot_timeout: 900
+    pre_reboot_delay: 5
+    post_reboot_delay: 20

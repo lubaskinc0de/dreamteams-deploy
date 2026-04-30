@@ -18,6 +18,26 @@ local-apply:
 prod-apply:
     kubectl apply -f apps/prod/
 
+# Install Ansible collections used by the production bootstrap.
+ansible-install:
+    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ANSIBLE_GALAXY_CACHE_DIR=/tmp/ansible-galaxy-cache ansible-galaxy collection install -r ansible/requirements.yml -p .ansible/collections
+
+# Bootstrap a production k3s cluster from ansible/inventory/hosts.yml.
+prod-bootstrap:
+    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ansible-playbook ansible/site.yml --ask-vault-pass
+
+# First bootstrap when the provider only gave a root SSH password.
+prod-bootstrap-password:
+    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ansible-playbook ansible/site.yml --ask-pass --ask-vault-pass
+
+# First infrastructure run before prod SealedSecrets exist.
+prod-bootstrap-infra:
+    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ansible-playbook ansible/site.yml --ask-vault-pass -e '{"prod_required_secret_names":[]}'
+
+# First infrastructure run by root SSH password before prod SealedSecrets exist.
+prod-bootstrap-infra-password:
+    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ansible-playbook ansible/site.yml --ask-pass --ask-vault-pass -e '{"prod_required_secret_names":[]}'
+
 # Re-login to ArgoCD (token expires after 24h)
 argocd-login:
     #!/usr/bin/env bash
@@ -28,6 +48,8 @@ argocd-login:
 
 # Sync all ArgoCD apps
 local-sync:
+    argocd app sync argo-rollouts {{argocd_flags}}
+    argocd app wait argo-rollouts --sync --health --timeout 300 {{argocd_flags}}
     argocd app sync cert-manager dreamteams-cert-issuer dreamteams-local-secrets \
         dreamteams-postgres dreamteams-redis dreamteams-rustfs dreamteams-nats \
         dreamteams-authentik dreamteams-pgbouncer dreamteams-oauth2proxy \
@@ -62,6 +84,43 @@ demo-traffic:
     docker compose -f observability/docker-compose.k6.yml run --rm k6
 
 # ─── Prod ─────────────────────────────────────────────────────────────────────
+
+# Open production ArgoCD UI through SSH tunnel. Usage: just prod-argocd-tunnel 203.0.113.10
+prod-argocd-tunnel host local_port="8080" remote_port="8080":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ssh_args=()
+    if [ -n "${ANSIBLE_PRIVATE_KEY_FILE:-}" ]; then
+      ssh_args+=("-i" "$ANSIBLE_PRIVATE_KEY_FILE")
+    fi
+    echo "Opening ArgoCD UI tunnel: https://localhost:{{local_port}}"
+    echo "Stop it with Ctrl+C."
+    ssh "${ssh_args[@]}" -L 127.0.0.1:{{local_port}}:127.0.0.1:{{remote_port}} deploy@{{host}} \
+      'kubectl -n {{argocd_namespace}} port-forward svc/argocd-server {{remote_port}}:443 --address 127.0.0.1'
+
+# Print production ArgoCD admin password over SSH. Usage: just prod-argocd-password 203.0.113.10
+prod-argocd-password host:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ssh_args=()
+    if [ -n "${ANSIBLE_PRIVATE_KEY_FILE:-}" ]; then
+      ssh_args+=("-i" "$ANSIBLE_PRIVATE_KEY_FILE")
+    fi
+    ssh "${ssh_args[@]}" deploy@{{host}} \
+      "kubectl get secret argocd-initial-admin-secret -n {{argocd_namespace}} -o jsonpath='{.data.password}' | base64 -d && echo"
+
+# Fetch prod SealedSecrets public cert over SSH. Usage: just prod-fetch-cert-ssh 203.0.113.10
+prod-fetch-cert-ssh host output="/tmp/prod-cert.pem":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ssh_args=()
+    if [ -n "${ANSIBLE_PRIVATE_KEY_FILE:-}" ]; then
+      ssh_args+=("-i" "$ANSIBLE_PRIVATE_KEY_FILE")
+    fi
+    ssh "${ssh_args[@]}" deploy@{{host}} \
+      "kubectl get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key=active -o jsonpath='{.items[0].data.tls\\.crt}'" \
+      | base64 -d > "{{output}}"
+    echo "Cert saved to {{output}}"
 
 # Fetch prod cluster cert for sealing prod secrets
 prod-fetch-cert:
