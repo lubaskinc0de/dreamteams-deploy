@@ -45,7 +45,7 @@ spec:
               nats --server nats://dreamteams-nats:{{ .Values.service.clientPort }} stream update {{ .Values.stream.name }} \
                 --subjects {{ join "," .Values.stream.subjects }} \
                 --max-age {{ .Values.stream.maxAge }} \
-                --defaults
+                --force
           securityContext:
             {{- toYaml .Values.streamJob.securityContext | nindent 12 }}
           resources:
