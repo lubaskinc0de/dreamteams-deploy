@@ -28,7 +28,7 @@ transforms:
               abort
             }
 
-            log_msg = strip_ansi_escape_codes!(string!(parsed.event))
+            log_msg = strip_ansi_escape_codes(string!(parsed.event))
             . = parsed
             .event = log_msg
             .log_msg = log_msg
