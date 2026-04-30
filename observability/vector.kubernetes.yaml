@@ -1,7 +1,7 @@
 sources:
     kubernetes_logs:
         type: kubernetes_logs
-        extra_label_selector: "app.kubernetes.io/name in (dreamteams-api,dreamteams-exporter)"
+        extra_label_selector: "app.kubernetes.io/name in (dreamteams-api,dreamteams-exporter,authentik,oauth2-proxy,postgresql,traefik)"
 
 transforms:
     logs_parser:
@@ -18,24 +18,38 @@ transforms:
             dt_namespace = string!(.kubernetes.pod_namespace)
             dt_pod = string!(.kubernetes.pod_name)
 
-            parsed, err = parse_json(string!(.message))
+            raw_message = strip_ansi_escape_codes(string!(.message))
+            parsed, err = parse_json(raw_message)
 
-            if !is_null(err) {
-              abort
+            if is_null(err) {
+              . = parsed
+              event_value = if !is_null(.event) {
+                .event
+              } else if !is_null(.message) {
+                .message
+              } else if !is_null(.msg) {
+                .msg
+              } else {
+                raw_message
+              }
+              .event = strip_ansi_escape_codes(string(event_value) ?? raw_message)
+            } else {
+              . = {}
+              .event = raw_message
             }
 
-            if is_null(parsed.event) {
-              abort
-            }
-
-            log_msg = strip_ansi_escape_codes(string!(parsed.event))
-            . = parsed
-            .event = log_msg
             .trace_id = if !is_null(.trace_id) { .trace_id } else { "" }
             .dt_container_name = dt_container_name
             .dt_namespace = dt_namespace
             .dt_pod = dt_pod
-            .dt_level = if !is_null(.level) { .level } else { "unknown" }
+            level_value = if !is_null(.level) {
+              .level
+            } else if !is_null(.severity) {
+              .severity
+            } else {
+              "unknown"
+            }
+            .dt_level = string(level_value) ?? "unknown"
 
 sinks:
     loki_sink:

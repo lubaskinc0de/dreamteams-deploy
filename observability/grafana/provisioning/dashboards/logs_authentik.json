@@ -1,0 +1,74 @@
+{
+  "annotations": { "list": [] },
+  "description": "Authentik server and worker logs from Kubernetes.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": ["dreamteams", "logs"],
+      "targetBlank": false,
+      "title": "DreamTeams Logs",
+      "type": "dashboards"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "logs",
+      "title": "Authentik Logs",
+      "description": "Logs from authentik server and worker pods.",
+      "gridPos": { "h": 24, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{namespace=\"authentik\", container_name=~\"server|worker\"} | json |~ \"(?i)$search\" | line_format \"{{.event}}\"",
+          "direction": "backward",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": false,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "enableInfiniteScrolling": false,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["dreamteams", "logs", "authentik"],
+  "templating": {
+    "list": [
+      {
+        "current": { "text": "", "value": "" },
+        "hide": 0,
+        "label": "Search",
+        "name": "search",
+        "options": [{ "selected": false, "text": "", "value": "" }],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "Authentik Logs",
+  "uid": "dreamteams-authentik-logs",
+  "version": 1,
+  "weekStart": ""
+}

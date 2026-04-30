@@ -1,0 +1,74 @@
+{
+  "annotations": { "list": [] },
+  "description": "PostgreSQL logs from DreamTeams and Authentik databases.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": ["dreamteams", "logs"],
+      "targetBlank": false,
+      "title": "DreamTeams Logs",
+      "type": "dashboards"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "logs",
+      "title": "Postgres Logs",
+      "description": "Logs from PostgreSQL pods in dreamteams and authentik namespaces.",
+      "gridPos": { "h": 24, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{namespace=~\"dreamteams|authentik\", container_name=\"postgresql\"} | json |~ \"(?i)$search\" | line_format \"{{.event}}\"",
+          "direction": "backward",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": false,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "enableInfiniteScrolling": false,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["dreamteams", "logs", "postgres"],
+  "templating": {
+    "list": [
+      {
+        "current": { "text": "", "value": "" },
+        "hide": 0,
+        "label": "Search",
+        "name": "search",
+        "options": [{ "selected": false, "text": "", "value": "" }],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "Postgres Logs",
+  "uid": "dreamteams-postgres-logs",
+  "version": 1,
+  "weekStart": ""
+}

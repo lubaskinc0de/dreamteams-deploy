@@ -1,0 +1,74 @@
+{
+  "annotations": { "list": [] },
+  "description": "Traefik ingress controller logs from kube-system.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": ["dreamteams", "logs"],
+      "targetBlank": false,
+      "title": "DreamTeams Logs",
+      "type": "dashboards"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "logs",
+      "title": "Traefik Logs",
+      "description": "Logs from Traefik, including ForwardAuth errors.",
+      "gridPos": { "h": 24, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{namespace=\"kube-system\", container_name=\"traefik\"} | json |~ \"(?i)$search\" | line_format \"{{.event}}\"",
+          "direction": "backward",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": false,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "enableInfiniteScrolling": false,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["dreamteams", "logs", "traefik"],
+  "templating": {
+    "list": [
+      {
+        "current": { "text": "", "value": "" },
+        "hide": 0,
+        "label": "Search",
+        "name": "search",
+        "options": [{ "selected": false, "text": "", "value": "" }],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "Traefik Logs",
+  "uid": "dreamteams-traefik-logs",
+  "version": 1,
+  "weekStart": ""
+}
