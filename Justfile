@@ -142,7 +142,12 @@ seal-prod input output:
 
 # ─── ArgoCD ───────────────────────────────────────────────────────────────────
 
+# Open local ArgoCD UI through kubectl port-forward.
+argocd-web port="8080":
+    kubectl -n {{argocd_namespace}} port-forward svc/argocd-server {{port}}:443 --address 127.0.0.1
+
 # Print ArgoCD URL and admin password
 argocd-open:
-    @echo "URL:      http://$(kubectl get svc argocd-server -n {{argocd_namespace}} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+    @echo "URL:      https://localhost:8080"
+    @echo "Tunnel:   just argocd-web 8080"
     @echo "Password: $(kubectl get secret argocd-initial-admin-secret -n {{argocd_namespace}} -o jsonpath='{.data.password}' | base64 -d)"

@@ -31,7 +31,7 @@ Install ArgoCD if needed:
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
 helm upgrade --install argocd argo/argo-cd -n argocd --create-namespace \
-  --set server.service.type=LoadBalancer \
+  --set server.service.type=ClusterIP \
   --set configs.rbac.policy\\.csv="g, admin, role:admin" \
   --wait
 ```
@@ -43,6 +43,14 @@ just local-k3s-up
 just argocd-login
 just local-sync
 ```
+
+ArgoCD UI is intentionally not exposed through the cluster LoadBalancer, so it does not compete with Traefik for ports `80` and `443`. Use a local port-forward when you need the UI:
+
+```bash
+just argocd-web 8080
+```
+
+Then open `https://localhost:8080`.
 
 Local hosts:
 
