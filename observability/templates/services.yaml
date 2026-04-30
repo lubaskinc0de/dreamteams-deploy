@@ -25,6 +25,18 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: alertmanager
+spec:
+  ports:
+    - name: http
+      port: 9093
+      targetPort: http
+  selector:
+    app: alertmanager
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: loki
 spec:
   ports:
@@ -78,3 +90,15 @@ spec:
       targetPort: metrics
   selector:
     app: node-exporter
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-state-metrics
+spec:
+  ports:
+    - name: http-metrics
+      port: 8080
+      targetPort: http-metrics
+  selector:
+    app: kube-state-metrics

@@ -1,0 +1,402 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-default-deny
+  namespace: dreamteams
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-allow-dns-egress
+  namespace: dreamteams
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-allow-traefik-ingress
+  namespace: dreamteams
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 5000
+        - protocol: TCP
+          port: 4180
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 8001
+        - protocol: TCP
+          port: 9000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-allow-internal-ingress
+  namespace: dreamteams
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-api
+              app.kubernetes.io/instance: dreamteams-api
+      ports:
+        - protocol: TCP
+          port: 6432
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 4222
+        - protocol: TCP
+          port: 9000
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-exporter
+              app.kubernetes.io/instance: dreamteams-exporter
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 4222
+        - protocol: TCP
+          port: 9000
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: oauth2-proxy
+              app.kubernetes.io/instance: dreamteams-oauth2proxy
+      ports:
+        - protocol: TCP
+          port: 6379
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-pgbouncer
+              app.kubernetes.io/instance: dreamteams-pgbouncer
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-migrations
+              app.kubernetes.io/instance: dreamteams-migrations
+      ports:
+        - protocol: TCP
+          port: 5432
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-anubis
+              app.kubernetes.io/instance: dreamteams-anubis
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-rustfs-buckets
+              app.kubernetes.io/instance: dreamteams-rustfs
+      ports:
+        - protocol: TCP
+          port: 9000
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-nats-stream
+              app.kubernetes.io/instance: dreamteams-nats
+      ports:
+        - protocol: TCP
+          port: 4222
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-api-egress
+  namespace: dreamteams
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dreamteams-api
+      app.kubernetes.io/instance: dreamteams-api
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-pgbouncer
+              app.kubernetes.io/instance: dreamteams-pgbouncer
+      ports:
+        - protocol: TCP
+          port: 6432
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+              app.kubernetes.io/instance: dreamteams-redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-nats
+              app.kubernetes.io/instance: dreamteams-nats
+      ports:
+        - protocol: TCP
+          port: 4222
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: rustfs
+              app.kubernetes.io/instance: dreamteams-rustfs
+      ports:
+        - protocol: TCP
+          port: 9000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app: otel-collector
+      ports:
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-exporter-egress
+  namespace: dreamteams
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dreamteams-exporter
+      app.kubernetes.io/instance: dreamteams-exporter
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+              app.kubernetes.io/instance: dreamteams-redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-nats
+              app.kubernetes.io/instance: dreamteams-nats
+      ports:
+        - protocol: TCP
+          port: 4222
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: rustfs
+              app.kubernetes.io/instance: dreamteams-rustfs
+      ports:
+        - protocol: TCP
+          port: 9000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app: otel-collector
+      ports:
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-oauth2proxy-egress
+  namespace: dreamteams
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: oauth2-proxy
+      app.kubernetes.io/instance: dreamteams-oauth2proxy
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+              app.kubernetes.io/instance: dreamteams-redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: TCP
+          port: 443
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-pgbouncer-egress
+  namespace: dreamteams
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dreamteams-pgbouncer
+      app.kubernetes.io/instance: dreamteams-pgbouncer
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+              app.kubernetes.io/instance: dreamteams-postgres
+              app.kubernetes.io/component: primary
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-migrations-egress
+  namespace: dreamteams
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dreamteams-migrations
+      app.kubernetes.io/instance: dreamteams-migrations
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+              app.kubernetes.io/instance: dreamteams-postgres
+              app.kubernetes.io/component: primary
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-anubis-egress
+  namespace: dreamteams
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dreamteams-anubis
+      app.kubernetes.io/instance: dreamteams-anubis
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-frontend
+              app.kubernetes.io/instance: dreamteams-frontend
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-nats-stream-egress
+  namespace: dreamteams
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dreamteams-nats-stream
+      app.kubernetes.io/instance: dreamteams-nats
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-nats
+              app.kubernetes.io/instance: dreamteams-nats
+      ports:
+        - protocol: TCP
+          port: 4222
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dreamteams-rustfs-buckets-egress
+  namespace: dreamteams
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dreamteams-rustfs-buckets
+      app.kubernetes.io/instance: dreamteams-rustfs
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: rustfs
+              app.kubernetes.io/instance: dreamteams-rustfs
+      ports:
+        - protocol: TCP
+          port: 9000
+{{- end }}

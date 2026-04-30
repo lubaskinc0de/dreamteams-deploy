@@ -84,7 +84,8 @@ spec:
       labels:
         app: prometheus
       annotations:
-        checksum/config: {{ .Files.Get "prometheus.yml" | sha256sum }}
+        checksum/config: {{ .Files.Get "prometheus.kubernetes.yml" | sha256sum }}
+        checksum/rules: {{ (.Files.Glob "prometheus-rules/*.yml").AsConfig | sha256sum }}
     spec:
       containers:
         - name: prometheus
@@ -100,6 +101,8 @@ spec:
             - name: config
               mountPath: /etc/prometheus/prometheus.yml
               subPath: prometheus.yml
+            - name: rules
+              mountPath: /etc/prometheus/rules
             - name: data
               mountPath: /prometheus
           resources:
@@ -108,6 +111,9 @@ spec:
         - name: config
           configMap:
             name: prometheus-config
+        - name: rules
+          configMap:
+            name: prometheus-rules
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -116,6 +122,52 @@ spec:
         resources:
           requests:
             storage: {{ .Values.prometheus.storageSize }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: alertmanager
+spec:
+  serviceName: alertmanager
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+        - name: alertmanager
+          image: {{ .Values.alertmanager.image }}
+          args:
+            - --config.file=/etc/alertmanager/alertmanager.yml
+            - --storage.path=/alertmanager
+          ports:
+            - name: http
+              containerPort: 9093
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager/alertmanager.yml
+              subPath: {{ .Values.alertmanager.config.key }}
+              readOnly: true
+            - name: data
+              mountPath: /alertmanager
+          resources:
+            {{- toYaml .Values.alertmanager.resources | nindent 12 }}
+      volumes:
+        - name: config
+          secret:
+            secretName: {{ .Values.alertmanager.config.existingSecret }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.alertmanager.storageSize }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet

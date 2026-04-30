@@ -55,4 +55,5 @@ prod_required_secret_names:
   - authentik-env
   - authentik-postgres-secret
   - grafana-admin
+  - alertmanager-config
   - ghcr-secret

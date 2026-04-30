@@ -21,6 +21,8 @@ spec:
           value: letsencrypt
         - name: issuer.email
           value: lubaskincorporation@gmail.com
+        - name: issuer.server
+          value: https://acme-v02.api.letsencrypt.org/directory
   destination:
     server: https://kubernetes.default.svc
     namespace: cert-manager

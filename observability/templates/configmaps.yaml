@@ -4,7 +4,14 @@ metadata:
   name: prometheus-config
 data:
   prometheus.yml: |
-{{ .Files.Get "prometheus.yml" | indent 4 }}
+{{ .Files.Get "prometheus.kubernetes.yml" | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+data:
+{{ (.Files.Glob "prometheus-rules/*.yml").AsConfig | indent 2 }}
 ---
 apiVersion: v1
 kind: ConfigMap

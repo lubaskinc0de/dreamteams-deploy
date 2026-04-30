@@ -1,4 +1,6 @@
 postgresql:
+  image:
+    tag: 18.3.0
   auth:                                                                                      
     existingSecret: dreamteams-postgres-secret                                               
     secretKeys:                                                                              
@@ -39,3 +41,6 @@ postgresql:
       limits:
         cpu: 1000m
         memory: 1Gi
+    networkPolicy:
+      allowExternal: false
+      allowExternalEgress: false

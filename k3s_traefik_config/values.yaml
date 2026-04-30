@@ -11,3 +11,10 @@ service:
 logs:
   access:
     enabled: false
+
+ports:
+  web:
+    redirectTo:
+      port: websecure
+      scheme: https
+      permanent: true

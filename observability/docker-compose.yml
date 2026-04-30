@@ -77,11 +77,40 @@ services:
             - "--web.enable-lifecycle"
         volumes:
             - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+            - ./prometheus-rules:/etc/prometheus/rules:ro
             - prometheus_data:/prometheus
         networks:
             - "shared"
         depends_on:
+            - alertmanager
             - node-exporter
+
+    alertmanager:
+        image: prom/alertmanager:v0.32.0
+        container_name: alertmanager
+        restart: unless-stopped
+        ports:
+            - "9093:9093"
+        command:
+            - "--config.file=/etc/alertmanager/alertmanager.yml"
+            - "--storage.path=/alertmanager"
+        volumes:
+            - ./alertmanager.local.yml:/etc/alertmanager/alertmanager.yml:ro
+            - alertmanager_data:/alertmanager
+        networks:
+            - "shared"
+        depends_on:
+            - mailpit
+
+    mailpit:
+        image: axllent/mailpit:v1.29.7
+        container_name: mailpit
+        restart: unless-stopped
+        ports:
+            - "8025:8025"
+            - "1025:1025"
+        networks:
+            - "shared"
 
     node-exporter:
         image: prom/node-exporter:v1.11.1
@@ -109,3 +138,4 @@ volumes:
     loki_data:
     tempo_data:
     prometheus_data:
+    alertmanager_data:

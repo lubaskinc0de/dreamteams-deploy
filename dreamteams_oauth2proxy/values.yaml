@@ -27,7 +27,7 @@ oauth2-proxy:
       scope="openid email profile offline_access"
       code_challenge_method="S256"
       email_domains="*"
-      whitelist_domains=["auth.dreamteams.localhost"]
+      whitelist_domains=["auth.dreamteams.localhost","dreamteams.localhost"]
       cookie_refresh="4m"
       cookie_expire="720h"
       cookie_csrf_per_request=true
@@ -52,7 +52,6 @@ oauth2-proxy:
       drop:
         - ALL
   podSecurityContext:
-    enabled: true
     runAsNonRoot: true
   serviceAccount:
     automountServiceAccountToken: false

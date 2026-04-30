@@ -15,6 +15,7 @@ spec:
         {{- include "dreamteams_pgbouncer.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "dreamteams_pgbouncer.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}

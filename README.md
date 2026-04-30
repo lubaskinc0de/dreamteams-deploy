@@ -87,9 +87,12 @@ just observe
 SUPERUSER_PASSWORD=asd123321 just demo-traffic
 ```
 
+The Compose observability sandbox also starts Alertmanager and Mailpit. Alertmanager sends local alert emails to Mailpit; open `http://localhost:8025` to inspect captured messages.
+
 Observability config ownership:
 
-- Docker and K3S share `observability/prometheus.yml`, `observability/loki.yaml`, `observability/tempo.yaml`, `observability/otel-collector.yaml`, and Grafana datasources/dashboards.
+- Docker and K3S share Prometheus alert rule files, `observability/loki.yaml`, `observability/tempo.yaml`, `observability/otel-collector.yaml`, and Grafana datasources/dashboards.
+- Docker uses `observability/prometheus.yml`; K3S uses `observability/prometheus.kubernetes.yml` so Kubernetes-only targets do not break the Compose sandbox.
 - Vector is environment-specific: Docker Compose uses `observability/vector.docker.yaml`, while K3S uses `observability/vector.kubernetes.yaml`.
 
 ## Production
@@ -100,6 +103,7 @@ Before production deploy, update:
 - `apps/prod/oauth2proxy.yaml`: replace the same hostnames in the oauth2-proxy config block.
 - `dreamteams_authentik/values-prod.yaml`: replace the Authentik OIDC redirect URI hostname.
 - SealedSecrets under `sealed-secrets/prod/` for every secret in `local/secrets.yaml`, with production values and namespaces preserved.
+- Backups for Postgres and object storage. This repo does not create production backup CronJobs yet; configure and verify backups before putting real user data in the cluster.
 
 For production Authentik automation, include `DREAMTEAMS_OIDC_CLIENT_ID` and `DREAMTEAMS_OIDC_CLIENT_SECRET` in the sealed `authentik-env` Secret. Use the same values as the sealed `dreamteams-oauth2proxy-secret` `client-id` and `client-secret` keys.
 
@@ -254,7 +258,41 @@ Production secret names expected by the charts:
 - `authentik-env` in namespace `authentik`
 - `authentik-postgres-secret` in namespace `authentik`
 - `grafana-admin` in namespace `observability`
+- `alertmanager-config` in namespace `observability`
 - `ghcr-secret` in namespace `dreamteams` if GHCR images are private
+
+Alertmanager reads its full SMTP config from the `alertmanager-config` Secret. Production should seal a Secret shaped like this:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-config
+  namespace: observability
+type: Opaque
+stringData:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: smtp.example.com:587
+      smtp_from: alerts@example.com
+      smtp_auth_username: alerts@example.com
+      smtp_auth_password: REPLACE_ME
+      smtp_require_tls: true
+      resolve_timeout: 5m
+
+    route:
+      receiver: email
+      group_by: ['alertname', 'severity', 'service_name', 'namespace']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
+    receivers:
+      - name: email
+        email_configs:
+          - to: ops@example.com
+            send_resolved: true
+```
 
 Seal production secrets after the Sealed Secrets controller is available:
 

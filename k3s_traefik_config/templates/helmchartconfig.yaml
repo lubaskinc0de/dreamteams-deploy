@@ -13,3 +13,9 @@ spec:
     logs:
       access:
         enabled: {{ .Values.logs.access.enabled }}
+    ports:
+      web:
+        redirectTo:
+          port: {{ .Values.ports.web.redirectTo.port }}
+          scheme: {{ .Values.ports.web.redirectTo.scheme }}
+          permanent: {{ .Values.ports.web.redirectTo.permanent }}

@@ -49,6 +49,8 @@ resources:
 
 podSecurityContext:
   fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
 
 securityContext:
   allowPrivilegeEscalation: false

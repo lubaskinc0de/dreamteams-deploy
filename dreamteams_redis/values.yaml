@@ -1,6 +1,11 @@
 redis:
+  image:
+    tag: 8.6.1
   auth:
     enabled: false
+  networkPolicy:
+    allowExternal: false
+    allowExternalEgress: false
   master:
     persistence:
       size: 256Mi

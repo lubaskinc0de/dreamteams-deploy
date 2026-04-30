@@ -2,13 +2,28 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: dreamteams
+  labels:
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn-version: latest
+    pod-security.kubernetes.io/audit-version: latest
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: authentik
+  labels:
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn-version: latest
+    pod-security.kubernetes.io/audit-version: latest
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: observability
+  labels:
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn-version: latest
+    pod-security.kubernetes.io/audit-version: latest

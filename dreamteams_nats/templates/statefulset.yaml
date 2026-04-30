@@ -18,6 +18,7 @@ spec:
         app.kubernetes.io/name: dreamteams-nats
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      automountServiceAccountToken: false
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}

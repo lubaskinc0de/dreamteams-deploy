@@ -59,6 +59,25 @@ avatarUpload:
     maxRequestBodyBytes: 5242880
     memRequestBodyBytes: 1048576
 
+forwardAuth:
+  maxResponseBodySize: 1048576
+
+securityHeaders:
+  enabled: true
+  frameDeny: true
+  contentTypeNosniff: true
+  referrerPolicy: no-referrer
+  permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+  stsSeconds: 0
+  stsIncludeSubdomains: false
+  stsPreload: false
+  contentSecurityPolicy:
+    enabled: false
+    value: ""
+
+networkPolicy:
+  enabled: true
+
 rateLimits:
   enabled: true
   redis:

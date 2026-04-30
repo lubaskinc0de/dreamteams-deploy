@@ -31,6 +31,12 @@ spec:
           value: https://dreamteams.example.com/
         - name: apiDocsAccess.enabled
           value: "true"
+        - name: securityHeaders.stsSeconds
+          value: "31536000"
+        - name: securityHeaders.stsIncludeSubdomains
+          value: "true"
+        - name: securityHeaders.stsPreload
+          value: "true"
   destination:
     server: https://kubernetes.default.svc
     namespace: dreamteams

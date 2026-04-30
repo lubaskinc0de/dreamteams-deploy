@@ -1,0 +1,96 @@
+groups:
+    - name: dreamteams.application
+      rules:
+          - alert: DreamTeamsHigh5xxRate
+            expr: |
+                (
+                  sum by (service_name) (
+                    rate(http_server_duration_milliseconds_count{service_name=~"dreamteams|dreamteams-exporter", http_status_code=~"5.."}[5m])
+                  )
+                  /
+                  clamp_min(
+                    sum by (service_name) (
+                      rate(http_server_duration_milliseconds_count{service_name=~"dreamteams|dreamteams-exporter"}[5m])
+                    ),
+                    0.001
+                  )
+                ) * 100 > 5
+                and on (service_name)
+                sum by (service_name) (
+                  increase(http_server_duration_milliseconds_count{service_name=~"dreamteams|dreamteams-exporter"}[5m])
+                ) >= 20
+            for: 5m
+            labels:
+                severity: critical
+                team: backend
+            annotations:
+                summary: "{{ $labels.service_name }} has high HTTP 5xx rate"
+                description: "More than 5% of requests returned 5xx for at least 5 minutes."
+
+          - alert: DreamTeamsHighLatencyP95
+            expr: |
+                histogram_quantile(
+                  0.95,
+                  sum by (service_name, le) (
+                    rate(http_server_duration_milliseconds_bucket{service_name=~"dreamteams|dreamteams-exporter"}[5m])
+                  )
+                ) > 2000
+                and on (service_name)
+                sum by (service_name) (
+                  increase(http_server_duration_milliseconds_count{service_name=~"dreamteams|dreamteams-exporter"}[5m])
+                ) >= 20
+            for: 10m
+            labels:
+                severity: warning
+                team: backend
+            annotations:
+                summary: "{{ $labels.service_name }} p95 latency is high"
+                description: "HTTP p95 latency is above 2 seconds for at least 10 minutes."
+
+          - alert: DreamTeamsMetricsMissing
+            expr: absent(dreamteams_db_pool_checked_out{service_name="dreamteams"})
+            for: 10m
+            labels:
+                severity: critical
+                team: backend
+            annotations:
+                summary: "DreamTeams API metrics are missing"
+                description: "The API DB pool metric has not been scraped for 10 minutes; API telemetry or the OTel Collector may be down."
+
+          - alert: DreamTeamsDbPoolInvalidations
+            expr: sum(increase(dreamteams_db_pool_invalidated_total[10m])) > 0
+            for: 5m
+            labels:
+                severity: warning
+                team: backend
+            annotations:
+                summary: "DreamTeams DB pool is invalidating connections"
+                description: "The application invalidated database pool connections in the last 10 minutes."
+
+          - alert: DreamTeamsExporterUnexpectedFailures
+            expr: sum(increase(dreamteams_exporter_export_jobs_completed_total{outcome="unexpected_error"}[15m])) > 0
+            for: 5m
+            labels:
+                severity: critical
+                team: backend
+            annotations:
+                summary: "Exporter jobs are failing unexpectedly"
+                description: "At least one exporter job completed with outcome=unexpected_error in the last 15 minutes."
+
+          - alert: DreamTeamsExporterSlowJobs
+            expr: |
+                histogram_quantile(
+                  0.95,
+                  sum by (le) (
+                    rate(dreamteams_exporter_export_job_duration_seconds_bucket[15m])
+                  )
+                ) > 60
+                and
+                sum(increase(dreamteams_exporter_export_job_duration_seconds_count[15m])) >= 5
+            for: 15m
+            labels:
+                severity: warning
+                team: backend
+            annotations:
+                summary: "Exporter jobs are slow"
+                description: "Exporter job p95 duration is above 60 seconds with enough recent jobs to make the signal meaningful."

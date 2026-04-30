@@ -46,13 +46,21 @@ resources:
     cpu: 300m
     memory: 192Mi
 
-podSecurityContext: {}
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 70
+  runAsGroup: 70
+  seccompProfile:
+    type: RuntimeDefault
 
 securityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:
       - ALL
+  runAsNonRoot: true
+  runAsUser: 70
+  runAsGroup: 70
 
 nodeSelector: {}
 tolerations: []

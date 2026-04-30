@@ -27,6 +27,8 @@ resources:
 
 podSecurityContext:
   runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
 
 securityContext:
   allowPrivilegeEscalation: false

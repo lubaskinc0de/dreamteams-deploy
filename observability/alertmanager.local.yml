@@ -1,0 +1,18 @@
+global:
+    smtp_smarthost: mailpit:1025
+    smtp_from: alerts@dreamteams.local
+    smtp_require_tls: false
+    resolve_timeout: 5m
+
+route:
+    receiver: email
+    group_by: ['alertname', 'severity', 'service_name', 'namespace']
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
+
+receivers:
+    - name: email
+      email_configs:
+          - to: devops@dreamteams.local
+            send_resolved: true

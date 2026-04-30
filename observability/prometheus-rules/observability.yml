@@ -1,0 +1,32 @@
+groups:
+    - name: dreamteams.observability
+      rules:
+          - alert: PrometheusTargetDown
+            expr: up{job=~"node|dreamteams|alertmanager|kube-state-metrics"} == 0
+            for: 5m
+            labels:
+                severity: critical
+                team: platform
+            annotations:
+                summary: "Prometheus target {{ $labels.job }}/{{ $labels.instance }} is down"
+                description: "A monitored target has been unreachable for at least 5 minutes."
+
+          - alert: AlertmanagerNotificationFailures
+            expr: increase(alertmanager_notifications_failed_total[5m]) > 0
+            for: 5m
+            labels:
+                severity: critical
+                team: platform
+            annotations:
+                summary: "Alertmanager failed to send notifications"
+                description: "Alertmanager has failed notification attempts in the last 5 minutes."
+
+          - alert: PrometheusRuleEvaluationFailures
+            expr: increase(prometheus_rule_evaluation_failures_total[5m]) > 0
+            for: 5m
+            labels:
+                severity: warning
+                team: platform
+            annotations:
+                summary: "Prometheus rule evaluation failed"
+                description: "Prometheus has rule evaluation failures in the last 5 minutes."

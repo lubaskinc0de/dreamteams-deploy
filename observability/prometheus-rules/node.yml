@@ -1,0 +1,57 @@
+groups:
+    - name: dreamteams.node
+      rules:
+          - alert: HostFilesystemAlmostFull
+            expr: |
+                (
+                  node_filesystem_avail_bytes{
+                    fstype!~"tmpfs|fuse.lxcfs|overlay|squashfs",
+                    mountpoint!~"/(sys|proc|dev|run|var/lib/docker/.+|var/lib/kubelet/pods/.+)"
+                  }
+                  /
+                  node_filesystem_size_bytes{
+                    fstype!~"tmpfs|fuse.lxcfs|overlay|squashfs",
+                    mountpoint!~"/(sys|proc|dev|run|var/lib/docker/.+|var/lib/kubelet/pods/.+)"
+                  }
+                ) * 100 < 10
+            for: 15m
+            labels:
+                severity: critical
+                team: platform
+            annotations:
+                summary: "Filesystem {{ $labels.instance }} {{ $labels.mountpoint }} is almost full"
+                description: "Filesystem has less than 10% free space for at least 15 minutes."
+
+          - alert: HostFilesystemReadonly
+            expr: |
+                node_filesystem_readonly{
+                  fstype!~"tmpfs|fuse.lxcfs|overlay|squashfs",
+                  mountpoint!~"/(sys|proc|dev|run|var/lib/docker/.+|var/lib/kubelet/pods/.+)"
+                } == 1
+            for: 5m
+            labels:
+                severity: critical
+                team: platform
+            annotations:
+                summary: "Filesystem {{ $labels.instance }} {{ $labels.mountpoint }} is read-only"
+                description: "A monitored filesystem is mounted read-only."
+
+          - alert: HostMemoryLow
+            expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 10
+            for: 15m
+            labels:
+                severity: warning
+                team: platform
+            annotations:
+                summary: "Host {{ $labels.instance }} has low available memory"
+                description: "Available memory is below 10% for at least 15 minutes."
+
+          - alert: HostCpuSaturation
+            expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+            for: 20m
+            labels:
+                severity: warning
+                team: platform
+            annotations:
+                summary: "Host {{ $labels.instance }} CPU is saturated"
+                description: "CPU usage is above 90% for at least 20 minutes."

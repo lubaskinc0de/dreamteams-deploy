@@ -1,0 +1,86 @@
+groups:
+    - name: dreamteams.kubernetes
+      rules:
+          - alert: KubeDeploymentReplicasUnavailable
+            expr: |
+                kube_deployment_spec_replicas{namespace=~"dreamteams|authentik|observability"}
+                -
+                kube_deployment_status_replicas_available{namespace=~"dreamteams|authentik|observability"}
+                > 0
+            for: 10m
+            labels:
+                severity: critical
+                team: platform
+            annotations:
+                summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has unavailable replicas"
+                description: "A deployment has had fewer available replicas than desired for at least 10 minutes."
+
+          - alert: KubeStatefulSetReplicasUnavailable
+            expr: |
+                kube_statefulset_replicas{namespace=~"dreamteams|authentik|observability"}
+                -
+                kube_statefulset_status_replicas_ready{namespace=~"dreamteams|authentik|observability"}
+                > 0
+            for: 10m
+            labels:
+                severity: critical
+                team: platform
+            annotations:
+                summary: "StatefulSet {{ $labels.namespace }}/{{ $labels.statefulset }} has unavailable replicas"
+                description: "A stateful workload has had fewer ready replicas than desired for at least 10 minutes."
+
+          - alert: KubePodCrashLooping
+            expr: |
+                max_over_time(
+                  kube_pod_container_status_waiting_reason{
+                    namespace=~"dreamteams|authentik|observability",
+                    reason="CrashLoopBackOff"
+                  }[5m]
+                ) > 0
+            for: 5m
+            labels:
+                severity: critical
+                team: platform
+            annotations:
+                summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash-looping"
+                description: "A container has been waiting with reason=CrashLoopBackOff for at least 5 minutes."
+
+          - alert: KubePodRestartingTooOften
+            expr: increase(kube_pod_container_status_restarts_total{namespace=~"dreamteams|authentik|observability"}[15m]) > 3
+            for: 5m
+            labels:
+                severity: warning
+                team: platform
+            annotations:
+                summary: "Container {{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} is restarting often"
+                description: "The container restarted more than 3 times in 15 minutes."
+
+          - alert: KubePodPendingTooLong
+            expr: kube_pod_status_phase{namespace=~"dreamteams|authentik|observability", phase="Pending"} == 1
+            for: 15m
+            labels:
+                severity: warning
+                team: platform
+            annotations:
+                summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is pending"
+                description: "A pod has stayed Pending for at least 15 minutes."
+
+          - alert: KubeJobFailed
+            expr: kube_job_status_failed{namespace=~"dreamteams|authentik|observability"} > 0
+            for: 5m
+            labels:
+                severity: warning
+                team: platform
+            annotations:
+                summary: "Job {{ $labels.namespace }}/{{ $labels.job_name }} failed"
+                description: "A Kubernetes Job has reported failed pods."
+
+          - alert: KubePersistentVolumeClaimPending
+            expr: kube_persistentvolumeclaim_status_phase{namespace=~"dreamteams|authentik|observability", phase="Pending"} == 1
+            for: 15m
+            labels:
+                severity: warning
+                team: platform
+            annotations:
+                summary: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is pending"
+                description: "A PersistentVolumeClaim has stayed Pending for at least 15 minutes."

@@ -25,6 +25,20 @@ prometheus:
       cpu: 500m
       memory: 512Mi
 
+alertmanager:
+  image: prom/alertmanager:v0.32.0
+  storageSize: 128Mi
+  config:
+    existingSecret: alertmanager-config
+    key: alertmanager.yml
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
 loki:
   image: grafana/loki:3.4.1
   storageSize: 512Mi
@@ -76,3 +90,13 @@ nodeExporter:
     limits:
       cpu: 100m
       memory: 96Mi
+
+kubeStateMetrics:
+  image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.18.0
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi

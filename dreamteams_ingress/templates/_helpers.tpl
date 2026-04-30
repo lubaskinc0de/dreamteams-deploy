@@ -20,3 +20,10 @@ spec:
       {{- omit $redis "enabled" | toYaml | nindent 6 }}
     {{- end }}
 {{- end }}
+
+{{- define "dreamteams_ingress.securityHeadersRef" -}}
+{{- if .Values.securityHeaders.enabled }}
+- name: security-headers
+  namespace: dreamteams
+{{- end }}
+{{- end }}

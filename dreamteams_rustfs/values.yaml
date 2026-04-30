@@ -14,6 +14,8 @@ rustfs:
     enabled: false
   service:
     type: ClusterIP
+  serviceAccount:
+    automount: false
   resources:
     requests:
       cpu: 50m
