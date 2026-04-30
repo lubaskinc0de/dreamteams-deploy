@@ -12,6 +12,9 @@ tls:
   s3SecretName: dreamteams-s3-tls
 
 services:
+  anubis:
+    name: dreamteams-anubis
+    port: 80
   frontend:
     name: dreamteams-frontend
     port: 80
@@ -40,3 +43,71 @@ logout:
   enabled: true
   endSessionUrl: "https://auth.dreamteams.localhost/application/o/dreamteams/end-session/"
   postLogoutRedirectUrl: "https://dreamteams.localhost/"
+
+anubis:
+  enabled: true
+
+apiDocsAccess:
+  enabled: false
+  sourceRange:
+    - 127.0.0.1/32
+
+rateLimits:
+  enabled: true
+  redis:
+    enabled: false
+    endpoints:
+      - dreamteams-redis-master.dreamteams.svc.cluster.local:6379
+    db: 4
+    dialTimeout: 1s
+    readTimeout: 1s
+    writeTimeout: 1s
+    poolSize: 20
+  frontend:
+    average: 1800
+    burst: 300
+    period: 1m
+  oauth2:
+    average: 300
+    burst: 100
+    period: 1m
+  publicPreview:
+    average: 300
+    burst: 100
+    period: 1m
+  apiDefault:
+    average: 600
+    burst: 120
+    period: 1m
+  apiWrite:
+    average: 120
+    burst: 40
+    period: 1m
+  identityWrite:
+    average: 30
+    burst: 10
+    period: 1m
+  avatarUpload:
+    average: 12
+    burst: 6
+    period: 1m
+  exportCreate:
+    average: 30
+    burst: 10
+    period: 1m
+  exportPoll:
+    average: 300
+    burst: 100
+    period: 1m
+  s3:
+    average: 600
+    burst: 200
+    period: 1m
+  authentik:
+    average: 300
+    burst: 100
+    period: 1m
+  grafana:
+    average: 120
+    burst: 60
+    period: 1m

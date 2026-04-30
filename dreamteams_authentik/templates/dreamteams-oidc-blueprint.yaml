@@ -4,23 +4,203 @@ kind: ConfigMap
 metadata:
   name: dreamteams-authentik-blueprints
 data:
-  dreamteams-oauth2.yaml: |
+  dreamteams-authentik.yaml: |
     version: 1
     metadata:
-      name: DreamTeams local OAuth2 application
+      name: DreamTeams Authentik configuration
       labels:
         blueprints.goauthentik.io/instantiate: "true"
     entries:
+      - model: authentik_flows.flow
+        id: dreamteams-enrollment-flow
+        identifiers:
+          slug: {{ printf "%s-enrollment" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          name: {{ printf "%s enrollment" .Values.dreamteamsOidc.appName | quote }}
+          title: {{ .Values.dreamteamsOidc.text.enrollmentTitle | quote }}
+          designation: enrollment
+          authentication: require_unauthenticated
+          layout: stacked
+          denied_action: message_continue
+      - model: authentik_flows.flow
+        id: dreamteams-authentication-flow
+        identifiers:
+          slug: {{ printf "%s-authentication" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          name: {{ printf "%s authentication" .Values.dreamteamsOidc.appName | quote }}
+          title: {{ .Values.dreamteamsOidc.text.authenticationTitle | quote }}
+          designation: authentication
+          authentication: require_unauthenticated
+          layout: stacked
+          denied_action: message_continue
+      - model: authentik_stages_password.passwordstage
+        id: dreamteams-authentication-password
+        identifiers:
+          name: {{ printf "%s-authentication-password" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          backends:
+            - authentik.core.auth.InbuiltBackend
+          configure_flow: !Find [authentik_flows.flow, [slug, default-password-change]]
+      - model: authentik_stages_identification.identificationstage
+        id: dreamteams-authentication-identification
+        identifiers:
+          name: {{ printf "%s-authentication-identification" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          user_fields:
+            - email
+          password_stage: !KeyOf dreamteams-authentication-password
+          enrollment_flow: !KeyOf dreamteams-enrollment-flow
+          case_insensitive_matching: true
+          show_matched_user: false
+          pretend_user_exists: false
+          enable_remember_me: true
+      - model: authentik_stages_user_login.userloginstage
+        id: dreamteams-authentication-login
+        identifiers:
+          name: {{ printf "%s-authentication-login" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          session_duration: seconds=0
+      {{- if .Values.dreamteamsOidc.captcha.enabled }}
+      - model: authentik_stages_captcha.captchastage
+        id: dreamteams-captcha
+        identifiers:
+          name: {{ printf "%s-captcha" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          public_key: !Env {{ .Values.dreamteamsOidc.captcha.publicKeyEnv }}
+          private_key: !Env {{ .Values.dreamteamsOidc.captcha.privateKeyEnv }}
+          js_url: {{ .Values.dreamteamsOidc.captcha.jsUrl | quote }}
+          api_url: {{ .Values.dreamteamsOidc.captcha.apiUrl | quote }}
+          interactive: {{ .Values.dreamteamsOidc.captcha.interactive }}
+      {{- end }}
+      - model: authentik_stages_prompt.prompt
+        id: dreamteams-enrollment-email
+        identifiers:
+          name: {{ printf "%s-enrollment-email" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          field_key: email
+          label: {{ .Values.dreamteamsOidc.text.emailLabel | quote }}
+          type: email
+          required: true
+          placeholder: {{ .Values.dreamteamsOidc.text.emailPlaceholder | quote }}
+          order: 100
+      - model: authentik_stages_prompt.prompt
+        id: dreamteams-enrollment-password
+        identifiers:
+          name: {{ printf "%s-enrollment-password" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          field_key: password
+          label: {{ .Values.dreamteamsOidc.text.passwordLabel | quote }}
+          type: password
+          required: true
+          order: 200
+      - model: authentik_stages_prompt.prompt
+        id: dreamteams-enrollment-password-repeat
+        identifiers:
+          name: {{ printf "%s-enrollment-password-repeat" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          field_key: password_repeat
+          label: {{ .Values.dreamteamsOidc.text.passwordRepeatLabel | quote }}
+          type: password
+          required: true
+          order: 300
+      - model: authentik_policies_expression.expressionpolicy
+        id: dreamteams-enrollment-normalize-email
+        identifiers:
+          name: {{ printf "%s-enrollment-normalize-email" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          expression: |
+            prompt_data = request.context.get("prompt_data") or {}
+            email = prompt_data.get("email", "").strip().lower()
+
+            if not email or "@" not in email:
+                ak_message({{ .Values.dreamteamsOidc.text.invalidEmailMessage | quote }})
+                return False
+
+            if prompt_data.get("password") != prompt_data.get("password_repeat"):
+                ak_message({{ .Values.dreamteamsOidc.text.passwordMismatchMessage | quote }})
+                return False
+
+            prompt_data["email"] = email
+            prompt_data["username"] = email
+            prompt_data["name"] = email
+            prompt_data.pop("password_repeat", None)
+            request.context["prompt_data"] = prompt_data
+            return True
+      - model: authentik_stages_prompt.promptstage
+        id: dreamteams-enrollment-prompt
+        identifiers:
+          name: {{ printf "%s-enrollment-prompt" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          fields:
+            - !KeyOf dreamteams-enrollment-email
+            - !KeyOf dreamteams-enrollment-password
+            - !KeyOf dreamteams-enrollment-password-repeat
+          validation_policies:
+            - !KeyOf dreamteams-enrollment-normalize-email
+      - model: authentik_stages_user_write.userwritestage
+        id: dreamteams-enrollment-user-write
+        identifiers:
+          name: {{ printf "%s-enrollment-user-write" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          user_creation_mode: always_create
+          create_users_as_inactive: false
+          user_type: internal
+      - model: authentik_stages_user_login.userloginstage
+        id: dreamteams-enrollment-login
+        identifiers:
+          name: {{ printf "%s-enrollment-login" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          session_duration: seconds=0
+      - model: authentik_flows.flowstagebinding
+        {{- if .Values.dreamteamsOidc.captcha.enabled }}
+        identifiers:
+          target: !KeyOf dreamteams-authentication-flow
+          stage: !KeyOf dreamteams-captcha
+          order: 5
+      - model: authentik_flows.flowstagebinding
+        {{- end }}
+        identifiers:
+          target: !KeyOf dreamteams-authentication-flow
+          stage: !KeyOf dreamteams-authentication-identification
+          order: 10
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !KeyOf dreamteams-authentication-flow
+          stage: !KeyOf dreamteams-authentication-login
+          order: 20
+      - model: authentik_flows.flowstagebinding
+        {{- if .Values.dreamteamsOidc.captcha.enabled }}
+        identifiers:
+          target: !KeyOf dreamteams-enrollment-flow
+          stage: !KeyOf dreamteams-captcha
+          order: 5
+      - model: authentik_flows.flowstagebinding
+        {{- end }}
+        identifiers:
+          target: !KeyOf dreamteams-enrollment-flow
+          stage: !KeyOf dreamteams-enrollment-prompt
+          order: 10
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !KeyOf dreamteams-enrollment-flow
+          stage: !KeyOf dreamteams-enrollment-user-write
+          order: 20
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !KeyOf dreamteams-enrollment-flow
+          stage: !KeyOf dreamteams-enrollment-login
+          order: 30
       - model: authentik_providers_oauth2.oauth2provider
         id: dreamteams-provider
         identifiers:
           name: {{ .Values.dreamteamsOidc.name | quote }}
         attrs:
+          authentication_flow: !KeyOf dreamteams-authentication-flow
           authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
           client_type: confidential
-          client_id: {{ .Values.dreamteamsOidc.clientId | quote }}
-          client_secret: {{ .Values.dreamteamsOidc.clientSecret | quote }}
+          client_id: !Env {{ .Values.dreamteamsOidc.clientIdEnv }}
+          client_secret: !Env {{ .Values.dreamteamsOidc.clientSecretEnv }}
           issuer_mode: per_provider
           redirect_uris:
             - matching_mode: strict
@@ -35,6 +215,6 @@ data:
         identifiers:
           slug: {{ .Values.dreamteamsOidc.slug | quote }}
         attrs:
-          name: DreamTeams
+          name: {{ .Values.dreamteamsOidc.appName | quote }}
           provider: !KeyOf dreamteams-provider
 {{- end }}

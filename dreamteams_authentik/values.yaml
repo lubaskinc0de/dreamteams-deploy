@@ -50,9 +50,16 @@ authentik:
       database: authentik
     primary:
       extendedConfiguration: |
-        max_connections = 120
-        shared_buffers = 128MB
+        max_connections = 50
+        shared_buffers = 96MB
         effective_cache_size = 384MB
+        work_mem = 2MB
+        maintenance_work_mem = 32MB
+        min_wal_size = 80MB
+        max_wal_size = 384MB
+        checkpoint_timeout = 10min
+        checkpoint_completion_target = 0.9
+        temp_file_limit = 128MB
       persistence:
         size: 1Gi
       resources:
@@ -80,3 +87,25 @@ authentik:
 
 dreamteamsOidc:
   enabled: false
+  appName: DreamTeams
+  name: dreamteams
+  slug: dreamteams
+  clientIdEnv: DREAMTEAMS_OIDC_CLIENT_ID
+  clientSecretEnv: DREAMTEAMS_OIDC_CLIENT_SECRET
+  redirectUri: https://dreamteams.localhost/oauth2/callback
+  captcha:
+    enabled: false
+    publicKeyEnv: DREAMTEAMS_CAPTCHA_PUBLIC_KEY
+    privateKeyEnv: DREAMTEAMS_CAPTCHA_PRIVATE_KEY
+    jsUrl: https://js.hcaptcha.com/1/api.js
+    apiUrl: https://api.hcaptcha.com/siteverify
+    interactive: true
+  text:
+    authenticationTitle: Вход в DreamTeams
+    enrollmentTitle: Создайте аккаунт DreamTeams
+    emailLabel: Электронная почта
+    emailPlaceholder: email@example.com
+    passwordLabel: Пароль
+    passwordRepeatLabel: Подтвердите пароль
+    invalidEmailMessage: Введите корректный адрес электронной почты.
+    passwordMismatchMessage: Пароли не совпадают.

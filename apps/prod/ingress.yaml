@@ -29,6 +29,8 @@ spec:
           value: https://auth.dreamteams.example.com/application/o/dreamteams/end-session/
         - name: logout.postLogoutRedirectUrl
           value: https://dreamteams.example.com/
+        - name: apiDocsAccess.enabled
+          value: "true"
   destination:
     server: https://kubernetes.default.svc
     namespace: dreamteams

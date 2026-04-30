@@ -1,0 +1,13 @@
+traefik:
+  name: traefik
+  namespace: kube-system
+
+deployment:
+  kind: DaemonSet
+
+service:
+  externalTrafficPolicy: Local
+
+logs:
+  access:
+    enabled: false

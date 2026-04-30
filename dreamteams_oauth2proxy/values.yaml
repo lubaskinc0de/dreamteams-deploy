@@ -1,7 +1,7 @@
 oauth2-proxy:
   image:
     tag: v7.11.0-alpine
-  replicaCount: 2
+  replicaCount: 1
   config:
     existingSecret: dreamteams-oauth2proxy-secret
     configFile: |
@@ -33,8 +33,6 @@ oauth2-proxy:
       cookie_csrf_per_request=true
       force_json_errors=true
       skip_auth_routes=[
-          "/api/docs",
-          "/api/openapi.json",
           "/api/competitions/preview"
       ]
   service:

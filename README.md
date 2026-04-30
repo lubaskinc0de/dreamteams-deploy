@@ -55,7 +55,9 @@ The local issuer is self-signed, so browser warnings and `curl -k` are expected.
 127.0.0.1 dreamteams.localhost s3.dreamteams.localhost auth.dreamteams.localhost grafana.dreamteams.localhost
 ```
 
-Local secrets live in `local/secrets.yaml` and are intentionally fake. The local Authentik chart mounts a blueprint that creates the DreamTeams OIDC provider/application with matching local oauth2-proxy credentials.
+Local secrets live in `local/secrets.yaml` and are intentionally fake. The Authentik chart mounts a blueprint that creates the DreamTeams OIDC provider/application, an email-only authentication flow, and a registration flow with email, password, and password confirmation fields. The OIDC client id/secret are read from `DREAMTEAMS_OIDC_CLIENT_ID` and `DREAMTEAMS_OIDC_CLIENT_SECRET` in the `authentik-env` Secret, and must match the oauth2-proxy `client-id` and `client-secret`.
+
+End-user Authentik copy for the DreamTeams flows is configured under `dreamteamsOidc.text` in `dreamteams_authentik/values.yaml`.
 
 For local images imported directly into K3S/containerd, override the relevant Helm values in the local ArgoCD app:
 
@@ -84,7 +86,12 @@ Before production deploy, update:
 
 - `apps/prod/ingress.yaml`: replace `dreamteams.example.com`, `s3.dreamteams.example.com`, `auth.dreamteams.example.com`, and `grafana.dreamteams.example.com`.
 - `apps/prod/oauth2proxy.yaml`: replace the same hostnames in the oauth2-proxy config block.
+- `dreamteams_authentik/values-prod.yaml`: replace the Authentik OIDC redirect URI hostname.
 - SealedSecrets under `sealed-secrets/prod/` for every secret in `local/secrets.yaml`, with production values and namespaces preserved.
+
+For production Authentik automation, include `DREAMTEAMS_OIDC_CLIENT_ID` and `DREAMTEAMS_OIDC_CLIENT_SECRET` in the sealed `authentik-env` Secret. Use the same values as the sealed `dreamteams-oauth2proxy-secret` `client-id` and `client-secret` keys.
+
+Traefik source IP preservation is managed by the `k3s-traefik-config` ArgoCD app. It applies the K3S `HelmChartConfig` for Traefik as a `DaemonSet` with `externalTrafficPolicy: Local`, so every VDS that receives ingress traffic has a local Traefik endpoint and rate-limit `RemoteAddr` sees the original client IP. Traefik access logs stay disabled by default.
 
 ### Ansible Bootstrap
 

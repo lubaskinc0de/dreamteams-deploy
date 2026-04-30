@@ -1,0 +1,5 @@
+apiVersion: v2
+name: k3s-traefik-config
+description: K3s Traefik HelmChartConfig for DreamTeams ingress behavior
+type: application
+version: 0.1.0

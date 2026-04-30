@@ -1,8 +1,6 @@
 dreamteamsOidc:
   enabled: true
-  name: dreamteams
-  slug: dreamteams
-  redirectUri: https://dreamteams.localhost/oauth2/callback
+  redirectUri: https://dreamteams.example.com/oauth2/callback
 
 authentik:
   blueprints:

@@ -18,6 +18,18 @@ spec:
     prefixes:
       - /s3
 ---
+{{- if .Values.apiDocsAccess.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-docs-ipallowlist
+  namespace: dreamteams
+spec:
+  ipAllowList:
+    sourceRange:
+      {{- toYaml .Values.apiDocsAccess.sourceRange | nindent 6 }}
+---
+{{- end }}
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -56,3 +68,17 @@ spec:
       name: {{ .Values.services.oauth2Proxy.name }}
       port: {{ .Values.services.oauth2Proxy.port }}
     query: "/oauth2/sign_in?rd={url}"
+{{- if .Values.rateLimits.enabled }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "frontend-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.frontend) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "oauth2-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.oauth2) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "public-preview-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.publicPreview) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "api-default-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.apiDefault) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "api-write-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.apiWrite) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "identity-write-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.identityWrite) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "avatar-upload-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.avatarUpload) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "export-create-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.exportCreate) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "export-poll-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.exportPoll) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "s3-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.s3) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "authentik-ratelimit" "namespace" .Values.services.authentik.namespace "limit" .Values.rateLimits.authentik) }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "grafana-ratelimit" "namespace" .Values.services.grafana.namespace "limit" .Values.rateLimits.grafana) }}
+{{- end }}

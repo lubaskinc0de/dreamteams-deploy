@@ -68,16 +68,41 @@ spec:
     {{- if .Values.logout.enabled }}
     - match: Host(`{{ .Values.appHost }}`) && Path(`/logout`)
       kind: Rule
+      priority: 200
       middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: frontend-ratelimit
+          namespace: dreamteams
+        {{- end }}
         - name: logout-redirect
           namespace: dreamteams
       services:
         - name: {{ .Values.services.frontend.name }}
           port: {{ .Values.services.frontend.port }}
     {{- end }}
-    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api/exports`)
+    {{- if .Values.apiDocsAccess.enabled }}
+    - match: Host(`{{ .Values.appHost }}`) && (Path(`/api/docs`) || PathPrefix(`/api/docs/`) || Path(`/api/openapi.json`))
       kind: Rule
+      priority: 195
       middlewares:
+        - name: api-docs-ipallowlist
+          namespace: dreamteams
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.api.name }}
+          port: {{ .Values.services.api.port }}
+    {{- end }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api/exports`) && Method(`POST`)
+      kind: Rule
+      priority: 190
+      middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: export-create-ratelimit
+          namespace: dreamteams
+        {{- end }}
         - name: oauth-errors
           namespace: dreamteams
         - name: oauth-auth
@@ -87,9 +112,138 @@ spec:
       services:
         - name: {{ .Values.services.exporter.name }}
           port: {{ .Values.services.exporter.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api/exports`) && Method(`GET`)
+      kind: Rule
+      priority: 180
+      middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: export-poll-ratelimit
+          namespace: dreamteams
+        {{- end }}
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+        - name: exporter-strip-prefix
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.exporter.name }}
+          port: {{ .Values.services.exporter.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api/exports`)
+      kind: Rule
+      priority: 175
+      middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: api-default-ratelimit
+          namespace: dreamteams
+        {{- end }}
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+        - name: exporter-strip-prefix
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.exporter.name }}
+          port: {{ .Values.services.exporter.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api/users/superuser`) && Method(`POST`)
+      kind: Rule
+      priority: 170
+      middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: identity-write-ratelimit
+          namespace: dreamteams
+        {{- end }}
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.api.name }}
+          port: {{ .Values.services.api.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api/participants`) && Method(`POST`)
+      kind: Rule
+      priority: 170
+      middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: identity-write-ratelimit
+          namespace: dreamteams
+        {{- end }}
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.api.name }}
+          port: {{ .Values.services.api.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api/organizers`) && Method(`POST`)
+      kind: Rule
+      priority: 170
+      middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: identity-write-ratelimit
+          namespace: dreamteams
+        {{- end }}
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.api.name }}
+          port: {{ .Values.services.api.port }}
+    - match: Host(`{{ .Values.appHost }}`) && Path(`/api/users/me/avatar`) && Method(`PUT`)
+      kind: Rule
+      priority: 170
+      middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: avatar-upload-ratelimit
+          namespace: dreamteams
+        {{- end }}
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.api.name }}
+          port: {{ .Values.services.api.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api`) && (Method(`POST`) || Method(`PUT`) || Method(`PATCH`) || Method(`DELETE`))
+      kind: Rule
+      priority: 160
+      middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: api-write-ratelimit
+          namespace: dreamteams
+        {{- end }}
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.api.name }}
+          port: {{ .Values.services.api.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api/competitions/preview`) && Method(`GET`)
+      kind: Rule
+      priority: 150
+      middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: public-preview-ratelimit
+          namespace: dreamteams
+        {{- end }}
+        - name: oauth-errors
+          namespace: dreamteams
+        - name: oauth-auth
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.api.name }}
+          port: {{ .Values.services.api.port }}
     - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/api`)
       kind: Rule
+      priority: 100
       middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: api-default-ratelimit
+          namespace: dreamteams
+        {{- end }}
         - name: oauth-errors
           namespace: dreamteams
         - name: oauth-auth
@@ -99,12 +253,23 @@ spec:
           port: {{ .Values.services.api.port }}
     - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/oauth2`)
       kind: Rule
+      priority: 90
+      {{- if .Values.rateLimits.enabled }}
+      middlewares:
+        - name: oauth2-ratelimit
+          namespace: dreamteams
+      {{- end }}
       services:
         - name: {{ .Values.services.oauth2Proxy.name }}
           port: {{ .Values.services.oauth2Proxy.port }}
     - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/s3`)
       kind: Rule
+      priority: 90
       middlewares:
+        {{- if .Values.rateLimits.enabled }}
+        - name: s3-ratelimit
+          namespace: dreamteams
+        {{- end }}
         - name: s3-strip-prefix
           namespace: dreamteams
       services:
@@ -112,9 +277,20 @@ spec:
           port: {{ .Values.services.rustfs.port }}
     - match: Host(`{{ .Values.appHost }}`)
       kind: Rule
+      priority: 1
+      {{- if .Values.rateLimits.enabled }}
+      middlewares:
+        - name: frontend-ratelimit
+          namespace: dreamteams
+      {{- end }}
       services:
+        {{- if .Values.anubis.enabled }}
+        - name: {{ .Values.services.anubis.name }}
+          port: {{ .Values.services.anubis.port }}
+        {{- else }}
         - name: {{ .Values.services.frontend.name }}
           port: {{ .Values.services.frontend.port }}
+        {{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -131,6 +307,11 @@ spec:
   routes:
     - match: Host(`{{ .Values.s3Host }}`)
       kind: Rule
+      {{- if .Values.rateLimits.enabled }}
+      middlewares:
+        - name: s3-ratelimit
+          namespace: dreamteams
+      {{- end }}
       services:
         - name: {{ .Values.services.rustfs.name }}
           port: {{ .Values.services.rustfs.port }}
@@ -150,6 +331,11 @@ spec:
   routes:
     - match: Host(`{{ .Values.authHost }}`)
       kind: Rule
+      {{- if .Values.rateLimits.enabled }}
+      middlewares:
+        - name: authentik-ratelimit
+          namespace: {{ .Values.services.authentik.namespace }}
+      {{- end }}
       services:
         - name: {{ .Values.services.authentik.name }}
           port: {{ .Values.services.authentik.port }}
@@ -169,6 +355,11 @@ spec:
   routes:
     - match: Host(`{{ .Values.grafanaHost }}`)
       kind: Rule
+      {{- if .Values.rateLimits.enabled }}
+      middlewares:
+        - name: grafana-ratelimit
+          namespace: {{ .Values.services.grafana.namespace }}
+      {{- end }}
       services:
         - name: {{ .Values.services.grafana.name }}
           port: {{ .Values.services.grafana.port }}

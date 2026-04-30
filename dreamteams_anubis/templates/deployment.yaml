@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dreamteams_anubis.fullname" . }}
+  labels:
+    {{- include "dreamteams_anubis.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "dreamteams_anubis.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dreamteams_anubis.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/policy: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "dreamteams_anubis.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: anubis
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.service.metricsPort }}
+              protocol: TCP
+          env:
+            - name: BIND
+              value: ":{{ .Values.service.targetPort }}"
+            - name: TARGET
+              value: {{ .Values.target | quote }}
+            - name: POLICY_FNAME
+              value: /etc/anubis/botPolicies.yaml
+            - name: DIFFICULTY
+              value: {{ .Values.config.difficulty | quote }}
+            - name: SLOG_LEVEL
+              value: {{ .Values.config.logLevel | quote }}
+            - name: COOKIE_SECURE
+              value: {{ .Values.config.cookieSecure | quote }}
+            - name: COOKIE_SAME_SITE
+              value: {{ .Values.config.cookieSameSite | quote }}
+            - name: OG_PASSTHROUGH
+              value: {{ .Values.config.openGraphPassthrough | quote }}
+            - name: OG_EXPIRY_TIME
+              value: {{ .Values.config.openGraphExpiryTime | quote }}
+            - name: SERVE_ROBOTS_TXT
+              value: {{ .Values.config.serveRobotsTxt | quote }}
+            - name: USE_SIMPLIFIED_EXPLANATION
+              value: {{ .Values.config.useSimplifiedExplanation | quote }}
+            {{- with .Values.config.challengeTitle }}
+            - name: CHALLENGE_TITLE
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.config.webmasterEmail }}
+            - name: WEBMASTER_EMAIL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: policy
+              mountPath: /etc/anubis
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: policy
+          configMap:
+            name: {{ include "dreamteams_anubis.fullname" . }}-policy
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -23,7 +23,7 @@ env:
   EXPORTER_CONFIG_PATH: "/etc/dreamteams-exporter/config.toml"
 
 api:
-  replicaCount: 2
+  replicaCount: 1
   service:
     type: ClusterIP
     port: 8001
@@ -48,7 +48,7 @@ api:
       memory: 512Mi
 
 worker:
-  replicaCount: 2
+  replicaCount: 1
   command:
     - dreamteams-exporter
     - run

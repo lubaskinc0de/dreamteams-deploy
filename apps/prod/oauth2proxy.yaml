@@ -44,8 +44,6 @@ spec:
             cookie_csrf_per_request=true
             force_json_errors=true
             skip_auth_routes=[
-                "/api/docs",
-                "/api/openapi.json",
                 "/api/competitions/preview"
             ]
   destination:

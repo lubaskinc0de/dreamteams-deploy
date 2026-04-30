@@ -1,0 +1,105 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/techarohq/anubis
+  pullPolicy: IfNotPresent
+  tag: ""
+
+nameOverride: dreamteams-anubis
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+  metricsPort: 9090
+
+target: http://dreamteams-frontend.dreamteams.svc.cluster.local:80
+
+config:
+  challengeTitle: Checking your browser
+  cookieSecure: true
+  cookieSameSite: Lax
+  difficulty: "4"
+  logLevel: WARN
+  openGraphPassthrough: true
+  openGraphExpiryTime: 24h
+  serveRobotsTxt: false
+  useSimplifiedExplanation: true
+  webmasterEmail: ""
+
+policy:
+  bots:
+    - name: anubis-assets
+      path_regex: ^/\.within\.website/.*$
+      action: ALLOW
+    - name: well-known
+      path_regex: ^/\.well-known/.*$
+      action: ALLOW
+    - name: favicon
+      path_regex: ^/favicon\.ico$
+      action: ALLOW
+    - name: robots-txt
+      path_regex: ^/robots\.txt$
+      action: ALLOW
+    - import: (data)/meta/default-config.yaml
+  store:
+    backend: memory
+    parameters: {}
+  logging:
+    sink: stdio
+    level: WARN
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+
+livenessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+readinessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 3
+  periodSeconds: 10
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+extraEnv: []

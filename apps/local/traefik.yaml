@@ -1,26 +1,25 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: dreamteams-authentik
+  name: k3s-traefik-config
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: "-5"
 spec:
   project: default
   source:
     repoURL: git@github.com:lubaskinc0de/dreamteams-deploy.git
     targetRevision: HEAD
-    path: dreamteams_authentik
+    path: k3s_traefik_config
     helm:
       valueFiles:
         - values.yaml
-        - values-prod.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: authentik
+    namespace: kube-system
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true

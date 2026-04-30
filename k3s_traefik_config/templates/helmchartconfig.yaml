@@ -1,0 +1,15 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: {{ .Values.traefik.name }}
+  namespace: {{ .Values.traefik.namespace }}
+spec:
+  valuesContent: |-
+    deployment:
+      kind: {{ .Values.deployment.kind }}
+    service:
+      spec:
+        externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy }}
+    logs:
+      access:
+        enabled: {{ .Values.logs.access.enabled }}
