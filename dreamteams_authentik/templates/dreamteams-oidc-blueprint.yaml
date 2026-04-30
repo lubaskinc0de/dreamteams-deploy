@@ -11,6 +11,11 @@ data:
       labels:
         blueprints.goauthentik.io/instantiate: "true"
     entries:
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: Default - Brand
+          required: true
       - model: authentik_flows.flow
         id: dreamteams-enrollment-flow
         identifiers:
@@ -143,8 +148,32 @@ data:
           name: {{ printf "%s-enrollment-user-write" .Values.dreamteamsOidc.slug | quote }}
         attrs:
           user_creation_mode: always_create
-          create_users_as_inactive: false
+          create_users_as_inactive: true
           user_type: internal
+      - model: authentik_stages_authenticator_email.authenticatoremailstage
+        id: dreamteams-enrollment-email-code
+        identifiers:
+          name: {{ printf "%s-enrollment-email-code" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          friendly_name: {{ .Values.dreamteamsOidc.emailVerification.friendlyName | quote }}
+          use_global_settings: true
+          subject: {{ .Values.dreamteamsOidc.emailVerification.subject | quote }}
+          token_expiry: {{ .Values.dreamteamsOidc.emailVerification.tokenExpiry | quote }}
+      - model: authentik_policies_expression.expressionpolicy
+        id: dreamteams-enrollment-activate-user
+        identifiers:
+          name: {{ printf "%s-enrollment-activate-user" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          expression: |
+            user = request.context.get("pending_user")
+
+            if not user:
+                ak_message("Не удалось подтвердить пользователя.")
+                return False
+
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+            return True
       - model: authentik_stages_user_login.userloginstage
         id: dreamteams-enrollment-login
         identifiers:
@@ -188,8 +217,35 @@ data:
       - model: authentik_flows.flowstagebinding
         identifiers:
           target: !KeyOf dreamteams-enrollment-flow
-          stage: !KeyOf dreamteams-enrollment-login
+          stage: !KeyOf dreamteams-enrollment-email-code
           order: 30
+      - model: authentik_flows.flowstagebinding
+        id: dreamteams-enrollment-login-binding
+        identifiers:
+          target: !KeyOf dreamteams-enrollment-flow
+          stage: !KeyOf dreamteams-enrollment-login
+          order: 40
+        attrs:
+          evaluate_on_plan: false
+          re_evaluate_policies: true
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf dreamteams-enrollment-login-binding
+          policy: !KeyOf dreamteams-enrollment-activate-user
+          order: 10
+        attrs:
+          enabled: true
+          timeout: 30
+          failure_result: false
+      - model: authentik_brands.brand
+        identifiers:
+          domain: authentik-default
+          default: true
+        attrs:
+          branding_title: {{ .Values.dreamteamsOidc.appName | quote }}
+          flow_authentication: !KeyOf dreamteams-authentication-flow
+          flow_invalidation: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          flow_user_settings: !Find [authentik_flows.flow, [slug, default-user-settings-flow]]
       - model: authentik_providers_oauth2.oauth2provider
         id: dreamteams-provider
         identifiers:

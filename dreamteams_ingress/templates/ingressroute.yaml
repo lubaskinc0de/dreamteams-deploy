@@ -203,6 +203,10 @@ spec:
           namespace: dreamteams
         - name: oauth-auth
           namespace: dreamteams
+        {{- if .Values.avatarUpload.requestBodyLimit.enabled }}
+        - name: avatar-upload-request-limit
+          namespace: dreamteams
+        {{- end }}
       services:
         - name: {{ .Values.services.api.name }}
           port: {{ .Values.services.api.port }}

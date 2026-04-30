@@ -68,6 +68,20 @@ spec:
       name: {{ .Values.services.oauth2Proxy.name }}
       port: {{ .Values.services.oauth2Proxy.port }}
     query: "/oauth2/sign_in?rd={url}"
+{{- if .Values.avatarUpload.requestBodyLimit.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: avatar-upload-request-limit
+  namespace: dreamteams
+spec:
+  buffering:
+    maxRequestBodyBytes: {{ .Values.avatarUpload.requestBodyLimit.maxRequestBodyBytes | int64 }}
+    {{- with .Values.avatarUpload.requestBodyLimit.memRequestBodyBytes }}
+    memRequestBodyBytes: {{ . | int64 }}
+    {{- end }}
+{{- end }}
 {{- if .Values.rateLimits.enabled }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "frontend-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.frontend) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "oauth2-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.oauth2) }}

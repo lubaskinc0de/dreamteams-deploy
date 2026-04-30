@@ -65,9 +65,11 @@ The local issuer is self-signed, so browser warnings and `curl -k` are expected.
 127.0.0.1 dreamteams.localhost s3.dreamteams.localhost auth.dreamteams.localhost grafana.dreamteams.localhost
 ```
 
-Local secrets live in `local/secrets.yaml` and are intentionally fake. The Authentik chart mounts a blueprint that creates the DreamTeams OIDC provider/application, an email-only authentication flow, and a registration flow with email, password, and password confirmation fields. The OIDC client id/secret are read from `DREAMTEAMS_OIDC_CLIENT_ID` and `DREAMTEAMS_OIDC_CLIENT_SECRET` in the `authentik-env` Secret, and must match the oauth2-proxy `client-id` and `client-secret`.
+Local secrets live in `local/secrets.yaml` and are intentionally fake. The Authentik chart mounts a blueprint that creates the DreamTeams OIDC provider/application, an email-only authentication flow, and a registration flow with email, password, password confirmation, and mandatory email-code verification. The OIDC client id/secret are read from `DREAMTEAMS_OIDC_CLIENT_ID` and `DREAMTEAMS_OIDC_CLIENT_SECRET` in the `authentik-env` Secret, and must match the oauth2-proxy `client-id` and `client-secret`.
 
 End-user Authentik copy for the DreamTeams flows is configured under `dreamteamsOidc.text` in `dreamteams_authentik/values.yaml`.
+
+Email-code verification uses Authentik global email settings, so `authentik-env` must also include the relevant `AUTHENTIK_EMAIL__...` SMTP configuration before registrations can complete.
 
 For local images imported directly into K3S/containerd, override the relevant Helm values in the local ArgoCD app:
 

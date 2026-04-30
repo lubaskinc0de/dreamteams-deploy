@@ -109,3 +109,7 @@ dreamteamsOidc:
     passwordRepeatLabel: Подтвердите пароль
     invalidEmailMessage: Введите корректный адрес электронной почты.
     passwordMismatchMessage: Пароли не совпадают.
+  emailVerification:
+    friendlyName: Электронная почта
+    subject: Код подтверждения DreamTeams
+    tokenExpiry: minutes=30
