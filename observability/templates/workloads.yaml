@@ -12,6 +12,9 @@ spec:
     metadata:
       labels:
         app: grafana
+      annotations:
+        checksum/datasources: {{ .Files.Get "grafana/provisioning/datasources/loki.yml" | sha256sum }}
+        checksum/dashboards: {{ (.Files.Glob "grafana/provisioning/dashboards/*.json").AsConfig | sha256sum }}
     spec:
       containers:
         - name: grafana
@@ -73,6 +76,8 @@ spec:
     metadata:
       labels:
         app: prometheus
+      annotations:
+        checksum/config: {{ .Files.Get "prometheus.yml" | sha256sum }}
     spec:
       containers:
         - name: prometheus
@@ -119,6 +124,8 @@ spec:
     metadata:
       labels:
         app: loki
+      annotations:
+        checksum/config: {{ .Files.Get "loki.yaml" | sha256sum }}
     spec:
       containers:
         - name: loki
@@ -163,6 +170,8 @@ spec:
     metadata:
       labels:
         app: tempo
+      annotations:
+        checksum/config: {{ .Files.Get "tempo.yaml" | sha256sum }}
     spec:
       containers:
         - name: tempo

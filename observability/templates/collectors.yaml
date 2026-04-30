@@ -11,6 +11,8 @@ spec:
     metadata:
       labels:
         app: otel-collector
+      annotations:
+        checksum/config: {{ .Files.Get "otel-collector.yaml" | sha256sum }}
     spec:
       containers:
         - name: otel-collector
@@ -74,6 +76,8 @@ spec:
     metadata:
       labels:
         app: vector
+      annotations:
+        checksum/config: {{ .Files.Get "vector.kubernetes.yaml" | sha256sum }}
     spec:
       serviceAccountName: vector
       containers:

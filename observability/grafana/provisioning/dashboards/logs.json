@@ -36,8 +36,8 @@
       ],
       "options": {
         "showTime": true,
-        "showLabels": true,
-        "showCommonLabels": true,
+        "showLabels": false,
+        "showCommonLabels": false,
         "wrapLogMessage": false,
         "prettifyLogMessage": false,
         "enableLogDetails": true,

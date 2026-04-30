@@ -38,6 +38,8 @@ sinks:
         inputs:
             - logs_parser
         type: loki
+        healthcheck:
+            enabled: true
         endpoint: http://loki:3100
         encoding:
             codec: json
