@@ -28,7 +28,6 @@ prometheus:
 loki:
   image: grafana/loki:3.4.1
   storageSize: 512Mi
-  retention: 24h
   resources:
     requests:
       cpu: 50m
@@ -40,7 +39,6 @@ loki:
 tempo:
   image: grafana/tempo:2.9.0
   storageSize: 512Mi
-  retention: 12h
   resources:
     requests:
       cpu: 50m

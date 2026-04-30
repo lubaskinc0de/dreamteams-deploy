@@ -17,7 +17,7 @@ services:
         image: timberio/vector:0.48.0-debian
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
-            - ./vector.yaml:/etc/vector/vector.yaml
+            - ./vector.docker.yaml:/etc/vector/vector.yaml
         environment:
           - DOCKER_HOST=unix:///var/run/docker.sock
         networks:

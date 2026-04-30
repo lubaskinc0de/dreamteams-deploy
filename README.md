@@ -73,6 +73,11 @@ just observe
 SUPERUSER_PASSWORD=asd123321 just demo-traffic
 ```
 
+Observability config ownership:
+
+- Docker and K3S share `observability/prometheus.yml`, `observability/loki.yaml`, `observability/tempo.yaml`, `observability/otel-collector.yaml`, and Grafana datasources/dashboards.
+- Vector is environment-specific: Docker Compose uses `observability/vector.docker.yaml`, while K3S uses `observability/vector.kubernetes.yaml`.
+
 ## Production
 
 Before production deploy, update:

@@ -4,19 +4,7 @@ metadata:
   name: prometheus-config
 data:
   prometheus.yml: |
-    global:
-      scrape_interval: 30s
-      evaluation_interval: 30s
-    scrape_configs:
-      - job_name: prometheus
-        static_configs:
-          - targets: ["localhost:9090"]
-      - job_name: node
-        static_configs:
-          - targets: ["node-exporter:9100"]
-      - job_name: dreamteams
-        static_configs:
-          - targets: ["otel-collector:8889"]
+{{ .Files.Get "prometheus.yml" | indent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -24,38 +12,7 @@ metadata:
   name: otel-collector-config
 data:
   otel-collector.yaml: |
-    receivers:
-      otlp:
-        protocols:
-          http:
-            endpoint: 0.0.0.0:4318
-          grpc:
-            endpoint: 0.0.0.0:4317
-    processors:
-      batch:
-        timeout: 5s
-        send_batch_size: 512
-    exporters:
-      prometheus:
-        endpoint: 0.0.0.0:8889
-        send_timestamps: true
-        metric_expiration: 5m
-        resource_to_telemetry_conversion:
-          enabled: true
-      otlphttp/tempo:
-        endpoint: http://tempo:4318
-        tls:
-          insecure: true
-    service:
-      pipelines:
-        traces:
-          receivers: [otlp]
-          processors: [batch]
-          exporters: [otlphttp/tempo]
-        metrics:
-          receivers: [otlp]
-          processors: [batch]
-          exporters: [prometheus]
+{{ .Files.Get "otel-collector.yaml" | indent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -63,36 +20,7 @@ metadata:
   name: loki-config
 data:
   loki.yaml: |
-    auth_enabled: false
-    server:
-      http_listen_port: 3100
-    common:
-      path_prefix: /loki
-      storage:
-        filesystem:
-          chunks_directory: /loki/chunks
-          rules_directory: /loki/rules
-      replication_factor: 1
-      ring:
-        instance_addr: 127.0.0.1
-        kvstore:
-          store: inmemory
-    schema_config:
-      configs:
-        - from: 2023-01-01
-          store: tsdb
-          object_store: filesystem
-          schema: v13
-          index:
-            prefix: index_
-            period: 24h
-    compactor:
-      working_directory: /loki/compactor
-      retention_enabled: true
-      retention_delete_delay: 1h
-      delete_request_store: filesystem
-    limits_config:
-      retention_period: {{ .Values.loki.retention }}
+{{ .Files.Get "loki.yaml" | indent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -100,30 +28,7 @@ metadata:
   name: tempo-config
 data:
   tempo.yaml: |
-    server:
-      http_listen_port: 3200
-      grpc_listen_port: 9095
-    distributor:
-      receivers:
-        otlp:
-          protocols:
-            http:
-              endpoint: 0.0.0.0:4318
-            grpc:
-              endpoint: 0.0.0.0:4317
-    target: all
-    ingester:
-      trace_idle_period: 10s
-      max_block_duration: 5m
-      complete_block_timeout: 1m
-    compactor:
-      compaction:
-        block_retention: {{ .Values.tempo.retention }}
-    storage:
-      trace:
-        backend: local
-        local:
-          path: /tmp/tempo
+{{ .Files.Get "tempo.yaml" | indent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -131,38 +36,7 @@ metadata:
   name: vector-config
 data:
   vector.yaml: |
-    sources:
-      kubernetes_logs:
-        type: kubernetes_logs
-        extra_label_selector: "app.kubernetes.io/name in (dreamteams-api,dreamteams-exporter)"
-    transforms:
-      logs_parser:
-        inputs: ["kubernetes_logs"]
-        type: remap
-        source: |
-          parsed, err = parse_json(string!(.message))
-          if !is_null(err) { abort }
-          if is_null(parsed.event) { abort }
-          .log_msg = strip_ansi_escape_codes!(parsed.event)
-          .level = parsed.level
-          .timestamp = parsed.timestamp
-          .logger = parsed.logger
-          .trace_id = if !is_null(parsed.trace_id) { parsed.trace_id } else { "" }
-          .message = parsed
-    sinks:
-      loki_sink:
-        inputs: ["logs_parser"]
-        type: loki
-        endpoint: http://loki:3100
-        encoding:
-          codec: json
-        batch:
-          max_events: 250
-          timeout_secs: 1
-        labels:
-          namespace: "{{`{{ kubernetes.pod_namespace }}`}}"
-          pod: "{{`{{ kubernetes.pod_name }}`}}"
-          level: "{{`{{ level }}`}}"
+{{ .Files.Get "vector.kubernetes.yaml" | indent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -170,23 +44,7 @@ metadata:
   name: grafana-provisioning
 data:
   datasources.yml: |
-    apiVersion: 1
-    datasources:
-      - name: Loki
-        type: loki
-        uid: loki
-        access: proxy
-        url: http://loki:3100
-      - name: Tempo
-        type: tempo
-        uid: tempo
-        access: proxy
-        url: http://tempo:3200
-      - name: Prometheus
-        type: prometheus
-        uid: prometheus
-        access: proxy
-        url: http://prometheus:9090
+{{ .Files.Get "grafana/provisioning/datasources/loki.yml" | indent 4 }}
   dashboards.yml: |
     apiVersion: 1
     providers:

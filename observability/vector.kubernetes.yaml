@@ -1,0 +1,51 @@
+sources:
+    kubernetes_logs:
+        type: kubernetes_logs
+        extra_label_selector: "app.kubernetes.io/name in (dreamteams-api,dreamteams-exporter)"
+
+transforms:
+    logs_parser:
+        inputs:
+            - kubernetes_logs
+        type: remap
+        source: |
+            parsed, err = parse_json(string!(.message))
+
+            if !is_null(err) {
+              abort
+            }
+
+            if is_null(parsed.event) {
+              abort
+            }
+
+            raw_container = string!(.kubernetes.container_name)
+            .container_name = if raw_container == "dreamteams-api" {
+              "api"
+            } else {
+              raw_container
+            }
+
+            .log_msg = strip_ansi_escape_codes!(parsed.event)
+            .level = parsed.level
+            .timestamp = parsed.timestamp
+            .logger = parsed.logger
+            .trace_id = if !is_null(parsed.trace_id) { parsed.trace_id } else { "" }
+            .message = parsed
+
+sinks:
+    loki_sink:
+        inputs:
+            - logs_parser
+        type: loki
+        endpoint: http://loki:3100
+        encoding:
+            codec: json
+        batch:
+            max_events: 250
+            timeout_secs: 1
+        labels:
+            container_name: "{{container_name}}"
+            namespace: "{{kubernetes.pod_namespace}}"
+            pod: "{{kubernetes.pod_name}}"
+            level: "{{level}}"
