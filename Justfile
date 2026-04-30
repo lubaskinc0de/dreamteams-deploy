@@ -48,13 +48,16 @@ argocd-login:
 
 # Sync all ArgoCD apps
 local-sync:
+    just local-apply
+    just argocd-login
+    argocd app sync k3s-traefik-config {{argocd_flags}}
     argocd app sync argo-rollouts {{argocd_flags}}
     argocd app wait argo-rollouts --sync --health --timeout 300 {{argocd_flags}}
     argocd app sync cert-manager dreamteams-cert-issuer dreamteams-local-secrets \
         dreamteams-postgres dreamteams-redis dreamteams-rustfs dreamteams-nats \
         dreamteams-authentik dreamteams-pgbouncer dreamteams-oauth2proxy \
         dreamteams-migrations dreamteams-api dreamteams-exporter \
-        dreamteams-frontend dreamteams-ingress dreamteams-observability \
+        dreamteams-frontend dreamteams-anubis dreamteams-ingress dreamteams-observability \
         {{argocd_flags}}
 
 # Show status of all apps

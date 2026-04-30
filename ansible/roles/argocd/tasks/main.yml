@@ -51,6 +51,7 @@
       --create-namespace
       --version {{ argocd_chart_version }}
       --set server.service.type=ClusterIP
+      --set configs.rbac.policy\.csv='g, admin, role:admin'
       --wait
       --timeout 10m
   environment:
