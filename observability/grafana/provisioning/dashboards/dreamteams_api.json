@@ -561,7 +561,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{container_name=~\"api|exporter-api|exporter-worker\", level=~\"$level\"} | json",
+          "expr": "{container_name=~\"api|exporter-api|exporter-worker\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" | json",
           "refId": "A"
         }
       ],
@@ -931,7 +931,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{container_name=~\"api|exporter-api|exporter-worker\", level=\"error\"} | json",
+          "expr": "{container_name=~\"api|exporter-api|exporter-worker\", level=\"error\"} !~ \"/internal/(alive|ready)\" | json",
           "refId": "A"
         }
       ],
