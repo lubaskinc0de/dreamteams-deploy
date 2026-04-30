@@ -142,13 +142,19 @@ export ANSIBLE_PRIVATE_KEY_FILE=~/.ssh/dreamteams_prod
 export SSH_PUBLIC_KEY="$(cat ~/.ssh/dreamteams_prod.pub)"
 ```
 
-8. Install collections:
+8. Get each server SSH host key fingerprint from your provider console or rescue shell, then record the key locally. The recipe appends the scanned key only when it matches the expected `SHA256:` fingerprint:
+
+```bash
+just prod-known-host YOUR_SERVER_IP SHA256:EXPECTED_SERVER_FINGERPRINT
+```
+
+9. Install collections:
 
 ```bash
 just ansible-install
 ```
 
-9. Run bootstrap.
+10. Run bootstrap.
 
 If the provider already installed your SSH public key for root:
 

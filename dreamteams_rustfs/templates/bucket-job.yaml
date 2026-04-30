@@ -1,7 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Release.Name }}-buckets-{{ .Release.Revision }}
+  name: {{ .Release.Name }}-buckets
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
   labels:
     app.kubernetes.io/name: dreamteams-rustfs-buckets
     app.kubernetes.io/instance: {{ .Release.Name }}

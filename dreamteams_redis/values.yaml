@@ -1,6 +1,7 @@
 redis:
   image:
-    tag: 8.6.1
+    tag: ""
+    digest: sha256:23289a4f4765da46419590fb80d8803363b07e5783ef45396ff85c641db81a0e
   auth:
     enabled: false
   networkPolicy:

@@ -22,6 +22,19 @@ prod-apply:
 ansible-install:
     ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ANSIBLE_GALAXY_CACHE_DIR=/tmp/ansible-galaxy-cache ansible-galaxy collection install -r ansible/requirements.yml -p .ansible/collections
 
+# Record a production host SSH key only when it matches the provider fingerprint.
+prod-known-host host fingerprint:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    tmp="$(mktemp)"
+    trap 'rm -f "$tmp"' EXIT
+    mkdir -p ~/.ssh
+    ssh-keyscan -H {{host}} > "$tmp"
+    ssh-keygen -l -f "$tmp"
+    ssh-keygen -l -f "$tmp" | grep -F "{{fingerprint}}" >/dev/null
+    cat "$tmp" >> ~/.ssh/known_hosts
+    ssh-keygen -F {{host}} -l -f ~/.ssh/known_hosts
+
 # Bootstrap a production k3s cluster from ansible/inventory/hosts.yml.
 prod-bootstrap:
     ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ansible-playbook ansible/site.yml --ask-vault-pass

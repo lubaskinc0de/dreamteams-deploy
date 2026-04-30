@@ -1,7 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Release.Name }}-migrations-{{ .Values.image.tag | default .Chart.AppVersion | replace "." "-" | replace ":" "-" }}
+  name: {{ .Release.Name }}-migrations
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
   labels:
     app.kubernetes.io/name: dreamteams-migrations
     app.kubernetes.io/instance: {{ .Release.Name }}

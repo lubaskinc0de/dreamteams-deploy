@@ -1,0 +1,49 @@
+- name: Disable root SSH login in main sshd_config
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PermitRootLogin"
+    line: "PermitRootLogin no"
+    state: present
+
+- name: Find SSH daemon drop-in configs
+  ansible.builtin.find:
+    paths: /etc/ssh/sshd_config.d
+    patterns: "*.conf"
+    file_type: file
+  register: final_sshd_dropin_configs
+  failed_when: false
+
+- name: Disable root SSH login in drop-in configs
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '^\s*PermitRootLogin\s+.*$'
+    replace: "PermitRootLogin no"
+  loop: "{{ final_sshd_dropin_configs.files | default([]) }}"
+
+- name: Write final SSH hardening drop-in
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/99-dreamteams-hardening.conf
+    mode: '0644'
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+
+- name: Validate final SSH daemon configuration
+  ansible.builtin.command:
+    cmd: /usr/sbin/sshd -t
+  changed_when: false
+
+- name: Restart SSH daemon with final hardening
+  ansible.builtin.service:
+    name: "{{ 'sshd' if ansible_facts.os_family in ['RedHat', 'Suse', 'Archlinux'] else 'ssh' }}"
+    state: restarted
+
+- name: Restrict cluster user passwordless sudo to safe ops commands
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ cluster_user }}"
+    mode: '0440'
+    content: |
+      Cmnd_Alias DREAMTEAMS_CLUSTER_OPS = {{ cluster_user_sudo_commands | join(', ') }}
+      {{ cluster_user }} ALL=(root) NOPASSWD: DREAMTEAMS_CLUSTER_OPS
+    validate: visudo -cf %s

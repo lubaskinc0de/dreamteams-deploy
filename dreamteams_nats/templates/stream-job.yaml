@@ -1,7 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: dreamteams-nats-stream-{{ .Release.Revision }}
+  name: dreamteams-nats-stream
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
   labels:
     app.kubernetes.io/name: dreamteams-nats-stream
     app.kubernetes.io/instance: {{ .Release.Name }}

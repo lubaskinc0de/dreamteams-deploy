@@ -37,9 +37,9 @@
     key: "{{ ssh_public_key }}"
     state: present
 
-# Give the cluster user passwordless sudo so they can run kubectl,
-# helm, and other privileged commands without entering a password.
-- name: Grant passwordless sudo to cluster user
+# Give the cluster user temporary broad sudo for k3s-ansible bootstrap.
+# post_bootstrap_hardening replaces this with the final restricted sudo policy.
+- name: Grant temporary bootstrap sudo to cluster user
   ansible.builtin.copy:
     dest: "/etc/sudoers.d/{{ cluster_user }}"
     content: "{{ cluster_user }} ALL=(ALL) NOPASSWD:ALL\n"
@@ -198,9 +198,9 @@
   loop: "{{ sshd_dropin_configs.files | default([]) }}"
   notify: Restart sshd
 
-# Allow root login only via SSH key, not password.
-# prohibit-password means: root can use keys but not passwords.
-- name: Disable root password login
+# Allow root login by SSH key only during bootstrap.
+# post_bootstrap_hardening disables root SSH login after the cluster is ready.
+- name: Restrict root login during bootstrap
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: "^#?PermitRootLogin"
@@ -216,7 +216,7 @@
   loop: "{{ sshd_dropin_configs.files | default([]) }}"
   notify: Restart sshd
 
-- name: Write SSH hardening drop-in
+- name: Write bootstrap SSH hardening drop-in
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/99-dreamteams-hardening.conf
     mode: '0644'

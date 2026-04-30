@@ -43,6 +43,12 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
+- name: Render ArgoCD Helm security values
+  ansible.builtin.copy:
+    dest: /tmp/argocd-security-values.yaml
+    mode: '0644'
+    content: "{{ {'configs': {'ssh': {'extraHosts': argocd_ssh_known_hosts}}} | to_nice_yaml }}"
+
 - name: Install or upgrade ArgoCD
   ansible.builtin.command:
     cmd: >
@@ -50,6 +56,7 @@
       --namespace {{ argocd_namespace }}
       --create-namespace
       --version {{ argocd_chart_version }}
+      --values /tmp/argocd-security-values.yaml
       --set server.service.type=ClusterIP
       --set configs.rbac.policy\.csv='g, admin, role:admin'
       --wait
@@ -64,6 +71,11 @@
   delay: 15
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Remove rendered ArgoCD Helm security values
+  ansible.builtin.file:
+    path: /tmp/argocd-security-values.yaml
+    state: absent
 
 - name: Render ArgoCD deploy repository secret
   ansible.builtin.template:

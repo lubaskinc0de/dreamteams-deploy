@@ -50,6 +50,25 @@
           - prod_required_secret_names | difference(prod_sealed_secret_names) | length == 0
         fail_msg: "sealed-secrets/prod is missing SealedSecret manifests for: {{ prod_required_secret_names | difference(prod_sealed_secret_names) | join(', ') }}"
 
+    - name: Check local SSH known_hosts entries for cluster nodes
+      ansible.builtin.command:
+        argv:
+          - ssh-keygen
+          - -F
+          - "{{ hostvars[item].ansible_host | default(item) }}"
+      loop: "{{ groups['server'] + (groups['agent'] | default([])) }}"
+      register: ssh_known_hosts_checks
+      changed_when: false
+      failed_when: false
+      when: (lookup('env', 'ANSIBLE_HOST_KEY_CHECKING') | default('true', true) | lower) not in ['false', '0', 'no']
+
+    - name: Validate local SSH known_hosts entries
+      ansible.builtin.assert:
+        that:
+          - ssh_known_hosts_checks.results | selectattr('rc', 'ne', 0) | list | length == 0
+        fail_msg: "Missing SSH known_hosts entries for cluster nodes. Verify each provider fingerprint, then add it with: just prod-known-host <host> <SHA256:fingerprint>"
+      when: (lookup('env', 'ANSIBLE_HOST_KEY_CHECKING') | default('true', true) | lower) not in ['false', '0', 'no']
+
 # Step 1: harden every node, create cluster user, configure firewall.
 # Runs as root since the cluster user doesn't exist yet.
 - name: Setup cluster nodes
@@ -82,3 +101,9 @@
   become: true
   roles:
     - argocd
+
+- name: Apply final node hardening
+  hosts: k3s_cluster
+  become: true
+  roles:
+    - post_bootstrap_hardening
