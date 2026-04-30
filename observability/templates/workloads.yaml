@@ -14,7 +14,9 @@ spec:
         app: grafana
       annotations:
         checksum/datasources: {{ .Files.Get "grafana/provisioning/datasources/loki.yml" | sha256sum }}
+        checksum/dashboard-providers: {{ .Files.Get "grafana/provisioning/dashboards.yml" | sha256sum }}
         checksum/dashboards: {{ (.Files.Glob "grafana/provisioning/dashboards/*.json").AsConfig | sha256sum }}
+        checksum/system-log-dashboards: {{ (.Files.Glob "grafana/provisioning/system-log-dashboards/*.json").AsConfig | sha256sum }}
     spec:
       containers:
         - name: grafana
@@ -43,7 +45,9 @@ spec:
               mountPath: /etc/grafana/provisioning/dashboards/dashboards.yml
               subPath: dashboards.yml
             - name: dashboards
-              mountPath: /var/lib/grafana/dashboards
+              mountPath: /etc/grafana/dashboards/dreamteams
+            - name: system-log-dashboards
+              mountPath: /etc/grafana/dashboards/system-logs
           resources:
             {{- toYaml .Values.grafana.resources | nindent 12 }}
       volumes:
@@ -53,6 +57,9 @@ spec:
         - name: dashboards
           configMap:
             name: grafana-dashboards
+        - name: system-log-dashboards
+          configMap:
+            name: grafana-system-log-dashboards
   volumeClaimTemplates:
     - metadata:
         name: data

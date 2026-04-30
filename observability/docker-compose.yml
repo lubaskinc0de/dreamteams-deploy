@@ -7,7 +7,9 @@ services:
             - "3000:3000"
         volumes:
           - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-          - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+          - ./grafana/provisioning/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+          - ./grafana/provisioning/dashboards:/etc/grafana/dashboards/dreamteams:ro
+          - ./grafana/provisioning/system-log-dashboards:/etc/grafana/dashboards/system-logs:ro
           - grafana_data:/var/lib/grafana
         networks:
             - "shared"

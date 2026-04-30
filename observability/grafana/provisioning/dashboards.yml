@@ -1,0 +1,19 @@
+apiVersion: 1
+
+providers:
+    - name: dreamteams
+      orgId: 1
+      folder: DreamTeams
+      type: file
+      disableDeletion: true
+      updateIntervalSeconds: 30
+      options:
+          path: /etc/grafana/dashboards/dreamteams
+    - name: system-logs
+      orgId: 1
+      folder: System Logs
+      type: file
+      disableDeletion: true
+      updateIntervalSeconds: 30
+      options:
+          path: /etc/grafana/dashboards/system-logs
