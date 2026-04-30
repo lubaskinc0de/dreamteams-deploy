@@ -9,6 +9,15 @@ transforms:
             - kubernetes_logs
         type: remap
         source: |
+            raw_container = string!(.kubernetes.container_name)
+            dt_container_name = if raw_container == "dreamteams-api" {
+              "api"
+            } else {
+              raw_container
+            }
+            dt_namespace = string!(.kubernetes.pod_namespace)
+            dt_pod = string!(.kubernetes.pod_name)
+
             parsed, err = parse_json(string!(.message))
 
             if !is_null(err) {
@@ -19,19 +28,15 @@ transforms:
               abort
             }
 
-            raw_container = string!(.kubernetes.container_name)
-            .container_name = if raw_container == "dreamteams-api" {
-              "api"
-            } else {
-              raw_container
-            }
-
-            .log_msg = strip_ansi_escape_codes!(parsed.event)
-            .level = parsed.level
-            .timestamp = parsed.timestamp
-            .logger = parsed.logger
-            .trace_id = if !is_null(parsed.trace_id) { parsed.trace_id } else { "" }
-            .message = parsed
+            log_msg = strip_ansi_escape_codes!(string!(parsed.event))
+            . = parsed
+            .event = log_msg
+            .log_msg = log_msg
+            .trace_id = if !is_null(.trace_id) { .trace_id } else { "" }
+            .dt_container_name = dt_container_name
+            .dt_namespace = dt_namespace
+            .dt_pod = dt_pod
+            .dt_level = if !is_null(.level) { .level } else { "unknown" }
 
 sinks:
     loki_sink:
@@ -41,13 +46,14 @@ sinks:
         healthcheck:
             enabled: true
         endpoint: http://loki:3100
+        remove_label_fields: true
         encoding:
             codec: json
         batch:
             max_events: 250
             timeout_secs: 1
         labels:
-            container_name: "{{container_name}}"
-            namespace: "{{kubernetes.pod_namespace}}"
-            pod: "{{kubernetes.pod_name}}"
-            level: "{{level}}"
+            container_name: "{{dt_container_name}}"
+            namespace: "{{dt_namespace}}"
+            pod: "{{dt_pod}}"
+            level: "{{dt_level}}"
