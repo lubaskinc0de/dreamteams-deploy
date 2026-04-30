@@ -28,7 +28,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\"",
+          "expr": "{container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\"",
           "direction": "backward",
           "queryType": "range",
           "refId": "A"

@@ -561,7 +561,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{container_name=~\"api|exporter-api|exporter-worker\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" | json",
+          "expr": "{container_name=~\"api|exporter-api|exporter-worker\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json",
           "refId": "A"
         }
       ],
@@ -931,7 +931,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{container_name=~\"api|exporter-api|exporter-worker\", level=\"error\"} !~ \"/internal/(alive|ready)\" | json",
+          "expr": "{container_name=~\"api|exporter-api|exporter-worker\", level=\"error\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json",
           "refId": "A"
         }
       ],
