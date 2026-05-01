@@ -1,0 +1,14 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: dreamteams-migrations-config
+  namespace: dreamteams
+spec:
+  encryptedData:
+    migrations.toml: AgAoIHmE3yTx8IN0FhNwIjP/lgV9eNgHLa+VdjEqs7zeOH5+mmO8jkNS0f1jrP8CpN2UAFd4E0G0BpFMQ3ymVsfK9JDhWN2q6GNjZ/MJ+LUNOB97Y97rsesBKgQOSmfaLY+kHgJW0Y/3eR8oMc3TLJfDka6setRQ1TSK1UOHxxXOkpeiKllkIEQLtkpCEMdCTq9Vo2f942o4xPJlyJaSJvnP6/xwRtdWyvfbtUSL0ouDOfk5bumz2z4O5i74ALSCqdjmJQ3GLmymAHITUVckpx9169RZgHTdoWzSj8dHlUnl+XkWWpWgBKVmsTDAgf/A2dGE996VhRkiXFdO8dYYN+PA9fJJEDmiz7NancdArnAFM4+tHTtdMaQcv0oqrlbcmG6Vq6xpxLefWJXOHwPam72kUtHYTcoJ64zj7LIdYbHnpG9BBaAHHqVANx5JB2XU3hgUWTc/q8Ooj2hPXSi7fwNkz/vnFIQhRYqrrjc14llpqXT70DlmglRRHGtg0lc6ZeaMGlDUXjkOmh6/1sD65wrqWCX/HKjnfsovBYCb32nHLOaQUOIXFjsLVPIjtRWzlz6R3TbsmlwAFb+SisCWI8KrrQyqnR+ji426pExqr8/+LvUEaKlEuZKM2RaZooLZ550CP/vWjQUUGUz2RWepunTP/SzLpHJiGdJ67zIrCd3kGyOfEdbTHHUxCYstosmPPwjpAwvv+CaDJCQxBEoc4Fjm7+yl0nUjgROrxr57rvxpCp9s2eNt/un9bJir7W5UMzdZmAfWOvG13ooJ6GNGZPvH5BxfGl5l+2fNh7unpH5UU4bmu+ulrVixQy8R4lp7LrMgyApl2c3rJDVJld1oK+wHGgrNEQSar339fJ7VprApPzzU93maFCGXbA8UxAraouJZGt7GqrV1mJKYvNFV4j72RuLKUs3vtSo8HZcHEOZOxi6S2kY9XHpV0eQQaH9/MceNtwcvl4sdvKMsmw==
+  template:
+    metadata:
+      name: dreamteams-migrations-config
+      namespace: dreamteams
+    type: Opaque
