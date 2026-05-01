@@ -1,318 +1,697 @@
-import http from 'k6/http';
-import { check, sleep } from 'k6';
-import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
-import { randomIntBetween } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
+import http from "k6/http";
+import { check, sleep } from "k6";
+import { uuidv4 } from "https://jslib.k6.io/k6-utils/1.4.0/index.js";
+import { randomIntBetween } from "https://jslib.k6.io/k6-utils/1.4.0/index.js";
 
-const BASE_URL = __ENV.API_URL || 'http://api:5000';
+const BASE_URL = __ENV.API_URL || "http://api:5000";
 const SUPERUSER_PASSWORD = __ENV.SUPERUSER_PASSWORD;
 
 if (!SUPERUSER_PASSWORD) {
-  throw new Error('SUPERUSER_PASSWORD env var is required');
+    throw new Error("SUPERUSER_PASSWORD env var is required");
 }
 
 export const options = {
-  scenarios: {
-    participants: {
-      executor: 'ramping-vus',
-      startVUs: 0,
-      stages: [
-        { duration: '20s', target: 30 },
-        { duration: '1m',  target: 80 },
-        { duration: '30s', target: 150 },
-        { duration: '2m',  target: 150 },
-        { duration: '20s', target: 0 },
-      ],
-      exec: 'participantFlow',
+    setupTimeout: "120s",
+    scenarios: {
+        participants: {
+            executor: "ramping-vus",
+            startVUs: 0,
+            stages: [
+                { duration: "20s", target: 30 },
+                { duration: "1m", target: 80 },
+                { duration: "30s", target: 150 },
+                { duration: "2m", target: 150 },
+                { duration: "20s", target: 0 },
+            ],
+            exec: "participantFlow",
+        },
+        organizer_actions: {
+            executor: "ramping-vus",
+            startVUs: 0,
+            stages: [
+                { duration: "20s", target: 5 },
+                { duration: "1m", target: 15 },
+                { duration: "30s", target: 30 },
+                { duration: "2m", target: 30 },
+                { duration: "20s", target: 0 },
+            ],
+            exec: "organizerFlow",
+        },
     },
-    organizer_actions: {
-      executor: 'ramping-vus',
-      startVUs: 0,
-      stages: [
-        { duration: '20s', target: 5 },
-        { duration: '1m',  target: 15 },
-        { duration: '30s', target: 30 },
-        { duration: '2m',  target: 30 },
-        { duration: '20s', target: 0 },
-      ],
-      exec: 'organizerFlow',
+    thresholds: {
+        http_req_failed: ["rate<0.20"],
+        http_req_duration: ["p(95)<5000"],
     },
-  },
-  thresholds: {
-    http_req_failed: ['rate<0.20'],
-    http_req_duration: ['p(95)<5000'],
-  },
 };
 
 function headers(userId) {
-  return {
-    'X-Auth-User': userId,
-    'X-Auth-User-Email': `${userId}@k6loadtest.com`,
-    'Content-Type': 'application/json',
-  };
+    return {
+        "X-Auth-User": userId,
+        "X-Auth-User-Email": `${userId}@k6loadtest.com`,
+        "Content-Type": "application/json",
+    };
 }
 
 function post(path, body, userId) {
-  return http.post(`${BASE_URL}${path}`, body ? JSON.stringify(body) : null, { headers: headers(userId) });
+    return http.post(`${BASE_URL}${path}`, body ? JSON.stringify(body) : null, {
+        headers: headers(userId),
+    });
 }
 
 function put(path, body, userId) {
-  return http.put(`${BASE_URL}${path}`, body ? JSON.stringify(body) : null, { headers: headers(userId) });
+    return http.put(`${BASE_URL}${path}`, body ? JSON.stringify(body) : null, {
+        headers: headers(userId),
+    });
+}
+
+function patch(path, body, userId) {
+    return http.patch(
+        `${BASE_URL}${path}`,
+        body ? JSON.stringify(body) : null,
+        { headers: headers(userId) },
+    );
 }
 
 function get(path, userId) {
-  return http.get(`${BASE_URL}${path}`, { headers: headers(userId) });
+    return http.get(`${BASE_URL}${path}`, { headers: headers(userId) });
 }
 
 function del(path, userId) {
-  return http.del(`${BASE_URL}${path}`, null, { headers: headers(userId) });
+    return http.del(`${BASE_URL}${path}`, null, { headers: headers(userId) });
 }
 
-const DOMAINS = ['backend', 'frontend', 'mobile', 'ai', 'devops'];
-const PARTICIPANT_TYPES = ['student', 'schoolchild'];
-const COMPETITION_PARTICIPANT_TYPES = ['student', 'schoolchild', 'any'];
-const EXPERIENCE_LEVELS = ['JUNIOR', 'MID', 'SENIOR'];
-const SKILL_LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'];
+const PARTICIPANT_TYPES = ["student", "schoolchild"];
+const COMPETITION_PARTICIPANT_TYPES = ["student", "schoolchild", "any"];
+const EXPERIENCE_LEVELS = ["JUNIOR", "MID", "SENIOR"];
+const SKILL_LEVELS = ["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"];
+const COMPETITION_FORMATS = ["online", "offline", "hybrid"];
 
-function randomDomains() {
-  const count = randomIntBetween(1, 3);
-  const shuffled = DOMAINS.slice().sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+function randomTags(count) {
+    const tags = [
+        "AI",
+        "Web",
+        "Mobile",
+        "DevOps",
+        "Security",
+        "Data Science",
+        "Cloud",
+        "IoT",
+    ];
+    const shuffled = tags.slice().sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
 }
 
 function futureDate(offsetDays) {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return d.toISOString();
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return d.toISOString();
 }
 
-function competitionBody(domains, participantType, registrationStart) {
-  return {
-    title: `Demo Competition`,
-    description: 'Auto-generated competition for observability load testing.',
-    schedule: {
-      registration_start: registrationStart,
-      registration_end: futureDate(30),
-    },
-    participant_limits: { max: 500 },
-    domains: domains,
-    participant_type: participantType,
-    venue: { format: 'online', location: null },
-    team_size: { min: 1, max: 4 },
-    auto_accept: false,
-    milestones: [
-      {
-        timestamp: futureDate(7),
-        title: 'Kickoff',
-        description: 'Teams assemble and confirm problem statements.',
-      },
-      {
-        timestamp: futureDate(20),
-        title: 'Mid-point check-in',
-        description: null,
-      },
-    ],
-  };
+function competitionBody() {
+    const format = COMPETITION_FORMATS[randomIntBetween(0, 2)];
+    const needsLocation = format === "offline" || format === "hybrid";
+    const hasTeamSize = Math.random() > 0.3;
+
+    const schedule = {
+        registration_start: new Date(Date.now() + 500).toISOString(),
+        registration_end: futureDate(30),
+    };
+
+    if (hasTeamSize) {
+        schedule.team_formation_start = futureDate(30);
+        schedule.team_formation_end = futureDate(45);
+    } else {
+        schedule.team_formation_start = null;
+        schedule.team_formation_end = null;
+    }
+
+    return {
+        title: `K6 Competition ${Date.now().toString(36)}-${randomIntBetween(0, 99999)}`,
+        description: "Auto-generated competition for load testing.",
+        schedule: schedule,
+        participant_limits: { max: 500 },
+        tag_ids: [],
+        tracks: [{ name: "Track A" }, { name: "Track B" }],
+        participant_type: COMPETITION_PARTICIPANT_TYPES[randomIntBetween(0, 2)],
+        venue: {
+            format: format,
+            location: needsLocation ? "Moscow, Russia" : null,
+        },
+        team_size: hasTeamSize ? { min: 1, max: 4 } : null,
+        auto_accept: Math.random() > 0.5,
+        milestones: [
+            {
+                timestamp: futureDate(7),
+                title: "Kickoff",
+                description: "Teams assemble and confirm problem statements.",
+            },
+            {
+                timestamp: futureDate(20),
+                title: "Mid-point check-in",
+                description: null,
+            },
+        ],
+    };
 }
 
 export function setup() {
-  const adminId = uuidv4();
-  const runTag = Date.now().toString(36);
+    console.log("=== SETUP STARTED ===");
+    const adminId = uuidv4();
 
-  const superuserRes = post('/users/superuser/', { password: SUPERUSER_PASSWORD }, adminId);
-  check(superuserRes, { 'superuser registered': (r) => r.status === 200 });
+    // Register superuser
+    const superuserRes = post(
+        "/users/superuser/",
+        { password: SUPERUSER_PASSWORD },
+        adminId,
+    );
+    check(superuserRes, { "superuser registered": (r) => r.status === 200 });
+    console.log(`Superuser registered: ${superuserRes.status}`);
 
-  const competitions = [];
-  const NUM_ORGANIZERS = 5;
+    // Create tags
+    const tagIds = [];
+    const tagsToCreate = [
+        "AI",
+        "Web",
+        "Mobile",
+        "DevOps",
+        "Security",
+        "Data Science",
+        "Cloud",
+        "IoT",
+        "Blockchain",
+        "ML",
+    ];
+    for (const tag of tagsToCreate) {
+        const tagRes = post("/admin/tags/", { value: tag }, adminId);
+        if (tagRes.status === 200) {
+            const tagId = JSON.parse(tagRes.body).id;
+            tagIds.push(tagId);
+        }
+    }
+    console.log(`Tags created: ${tagIds.length}`);
 
-  for (let i = 0; i < NUM_ORGANIZERS; i++) {
-    const inviteRes = post('/invites/', { display_name: `k6-${runTag}-${i}` }, adminId);
-    check(inviteRes, { 'invite issued': (r) => r.status === 200 });
-    if (inviteRes.status !== 200) continue;
+    const competitions = [];
+    const NUM_ORGANIZERS = 50;
+    const COMPS_PER_ORG = 10;
+    let createdComps = 0;
+    let activatedComps = 0;
+    let formErrors = 0;
 
-    const inviteCode = JSON.parse(inviteRes.body).code;
-    const orgId = uuidv4();
-    const phone = `+79${String(Math.floor(Math.random() * 900000000) + 100000000)}`;
+    for (let i = 0; i < NUM_ORGANIZERS; i++) {
+        // Issue invite
+        const inviteRes = post(
+            "/invites/",
+            { display_name: `org-${i}-${Date.now().toString(36)}` },
+            adminId,
+        );
+        check(inviteRes, { "invite issued": (r) => r.status === 200 });
+        if (inviteRes.status !== 200) {
+            console.log(`Failed to issue invite for org ${i}`);
+            continue;
+        }
 
-    const orgRes = post('/organizers/', {
-      organizer_name: `K6 Org ${runTag} ${i}`,
-      phone_number: phone,
-      contact_email: `k6org${runTag}${i}@k6loadtest.com`,
-      invite_code: inviteCode,
-    }, orgId);
-    check(orgRes, { 'organizer registered': (r) => r.status === 200 });
-    if (orgRes.status !== 200) continue;
+        const inviteCode = JSON.parse(inviteRes.body).code;
+        const orgId = uuidv4();
+        const phone = `+79${String(Math.floor(Math.random() * 900000000) + 100000000)}`;
 
-    const domains = randomDomains();
-    const participantType = COMPETITION_PARTICIPANT_TYPES[i % COMPETITION_PARTICIPANT_TYPES.length];
-    const registrationStart = new Date(Date.now() + 500).toISOString();
-    const body = competitionBody(domains, participantType, registrationStart);
+        // Register organizer
+        const orgRes = post(
+            "/organizers/",
+            {
+                organizer_name: `K6 Org ${i}-${Date.now().toString(36)}`,
+                phone_number: phone,
+                invite_code: inviteCode,
+            },
+            orgId,
+        );
+        check(orgRes, { "organizer registered": (r) => r.status === 200 });
+        if (orgRes.status !== 200) {
+            console.log(`Failed to register organizer ${i}`);
+            continue;
+        }
 
-    const compRes = post('/competitions/', body, orgId);
-    check(compRes, { 'competition created': (r) => r.status === 200 });
-    if (compRes.status !== 200) continue;
+        // Create competitions for this organizer
+        for (let j = 0; j < COMPS_PER_ORG; j++) {
+            const body = competitionBody();
+            body.tag_ids = tagIds
+                .sort(() => Math.random() - 0.5)
+                .slice(0, randomIntBetween(1, 3));
 
-    const compId = JSON.parse(compRes.body).competition_id;
+            // CREATE COMPETITION
+            const compRes = post("/competitions/", body, orgId);
+            if (compRes.status !== 200) {
+                console.log(
+                    `Failed to create competition ${i}-${j}: ${compRes.status}`,
+                );
+                continue;
+            }
+            createdComps++;
 
-    // Publish: competitions start archived=true, must set is_archived=false to accept applications
-    const publishRes = put(`/competitions/${compId}`, { ...body, is_archived: false }, orgId);
-    check(publishRes, { 'competition published': (r) => r.status === 200 });
+            const compId = JSON.parse(compRes.body).competition_id;
 
-    // Create application form for even-indexed competitions
-    let hasForm = false;
-    if (i % 2 === 0) {
-      const formRes = post(`/competitions/${compId}/application-form/`, {
-        fields: [
-          { name: 'motivation', label: 'Why do you want to join?', type: 'string', required: true },
-          { name: 'experience_years', label: 'Years of experience', type: 'int', required: false },
-          { name: 'role', label: 'Preferred role', type: 'select', required: true,
-            choices: [
-              { value: 'frontend', label: 'Frontend' },
-              { value: 'backend', label: 'Backend' },
-              { value: 'devops', label: 'DevOps' },
-            ]
-          },
-        ],
-      }, orgId);
-      check(formRes, { 'application form created': (r) => r.status === 200 });
-      hasForm = formRes.status === 200;
+            // ACTIVATE COMPETITION IMMEDIATELY
+            const activateRes = patch(
+                `/competitions/${compId}/archive-status`,
+                { is_archived: false },
+                orgId,
+            );
+            if (activateRes.status === 200) {
+                activatedComps++;
+            } else {
+                console.log(
+                    `Failed to activate comp ${compId}: ${activateRes.status}`,
+                );
+            }
+
+            // Create application form for some competitions
+            let hasForm = false;
+            if (j % 2 === 0) {
+                const formRes = post(
+                    `/competitions/${compId}/application-form/`,
+                    {
+                        fields: [
+                            {
+                                name: "motivation",
+                                type: "string",
+                                required: true,
+                                choices: null,
+                            },
+                            {
+                                name: "experience_years",
+                                type: "int",
+                                required: false,
+                                choices: null,
+                            },
+                            {
+                                name: "role",
+                                type: "select",
+                                required: true,
+                                choices: [
+                                    { value: "frontend" },
+                                    { value: "backend" },
+                                    { value: "devops" },
+                                ],
+                            },
+                        ],
+                    },
+                    orgId,
+                );
+                hasForm = formRes.status === 200;
+                if (!hasForm) formErrors++;
+            }
+
+            competitions.push({
+                id: compId,
+                organizer_id: orgId,
+                tracks: body.tracks,
+                participant_type: body.participant_type,
+                has_form: hasForm,
+                is_archived: false,
+            });
+        }
+
+        // Progress indicator
+        if ((i + 1) % 10 === 0) {
+            console.log(
+                `Progress: ${i + 1}/${NUM_ORGANIZERS} organizers done. Comps: ${createdComps}, Activated: ${activatedComps}`,
+            );
+        }
     }
 
-    competitions.push({ id: compId, organizer_id: orgId, domains: domains, participant_type: participantType, has_form: hasForm });
-  }
+    console.log(`=== SETUP COMPLETE ===`);
+    console.log(`Total competitions: ${competitions.length}`);
+    console.log(`Created: ${createdComps}, Activated: ${activatedComps}`);
+    console.log(`With forms: ${competitions.filter((c) => c.has_form).length}`);
+    console.log(`Form errors: ${formErrors}`);
 
-  // Wait for registration windows to open (created with +500ms offset)
-  sleep(2);
-  return { competitions };
+    sleep(3); // Wait for all data to be committed
+    return { competitions, tagIds, adminId };
 }
 
 export function participantFlow(data) {
-  const { competitions } = data;
-  if (!competitions || competitions.length === 0) return;
+    const { competitions } = data;
+    if (!competitions || competitions.length === 0) return;
 
-  const userId = uuidv4();
-  const idx = __VU % 3;
+    const userId = uuidv4();
+    const idx = __VU % 3;
 
-  // Register as participant
-  const regRes = post('/participants/', {
-    full_name: `K6 Participant ${userId.slice(0, 8)}`,
-    participant_type: PARTICIPANT_TYPES[idx % PARTICIPANT_TYPES.length],
-    age: randomIntBetween(17, 35),
-    bio: 'Auto-generated demo participant for observability load testing.',
-    experience_level: EXPERIENCE_LEVELS[idx % EXPERIENCE_LEVELS.length],
-    skills: [
-      { name: 'Python', level: SKILL_LEVELS[randomIntBetween(0, 3)] },
-      { name: 'TypeScript', level: SKILL_LEVELS[randomIntBetween(0, 3)] },
-    ],
-    preferred_domains: randomDomains(),
-  }, userId);
+    // Register as participant
+    const regRes = post(
+        "/participants/",
+        {
+            full_name: `K6 Participant ${userId.slice(0, 8)}`,
+            participant_type: PARTICIPANT_TYPES[idx % PARTICIPANT_TYPES.length],
+            age: randomIntBetween(17, 35),
+            bio: "Auto-generated demo participant for load testing.",
+            experience_level: EXPERIENCE_LEVELS[idx % EXPERIENCE_LEVELS.length],
+            skills: [
+                { name: "Python", level: SKILL_LEVELS[randomIntBetween(0, 3)] },
+                {
+                    name: "TypeScript",
+                    level: SKILL_LEVELS[randomIntBetween(0, 3)],
+                },
+            ],
+            contacts: [
+                { title: "Telegram", value: `@user_${userId.slice(0, 8)}` },
+                { title: "GitHub", value: `gh_${userId.slice(0, 8)}` },
+            ],
+        },
+        userId,
+    );
 
-  check(regRes, { 'participant registered': (r) => r.status === 200 });
-  if (regRes.status !== 200) {
-    sleep(1);
-    return;
-  }
+    check(regRes, { "participant registered": (r) => r.status === 200 });
+    if (regRes.status !== 200) {
+        sleep(1);
+        return;
+    }
 
-  sleep(0.2);
+    sleep(0.2);
 
-  // Browse competitions — anonymous preview
-  const previewRes = get('/competitions/preview?page=1', userId);
-  check(previewRes, { 'competitions listed (preview)': (r) => r.status === 200 });
+    // Update participant profile (30% chance)
+    if (Math.random() < 0.3) {
+        const updateRes = put(
+            "/users/me/participant",
+            {
+                full_name: `Updated ${userId.slice(0, 8)}`,
+                participant_type:
+                    PARTICIPANT_TYPES[idx % PARTICIPANT_TYPES.length],
+                age: randomIntBetween(18, 40),
+                bio: "Updated bio for testing PUT endpoint.",
+                experience_level: EXPERIENCE_LEVELS[randomIntBetween(0, 2)],
+                skills: [
+                    { name: "Go", level: SKILL_LEVELS[randomIntBetween(0, 3)] },
+                ],
+                contacts: [
+                    {
+                        title: "Email",
+                        value: `updated_${userId.slice(0, 8)}@test.com`,
+                    },
+                ],
+            },
+            userId,
+        );
+        check(updateRes, { "participant updated": (r) => r.status === 200 });
+    }
 
-  sleep(0.2);
+    sleep(0.2);
 
-  // Participant-facing explore with rich filters — mix of default and filtered requests
-  const explorePaths = [
-    '/competitions/explore?sort_by=most_popular&page=1',
-    '/competitions/explore?sort_by=newest&page=1',
-    `/competitions/explore?sort_by=most_popular&domains=${DOMAINS[randomIntBetween(0, DOMAINS.length - 1)]}`,
-    `/competitions/explore?sort_by=most_popular&min_team_size=1&max_team_size=4`,
-    '/competitions/explore?sort_by=most_popular&auto_accept=false',
-  ];
-  const exploreRes = get(explorePaths[randomIntBetween(0, explorePaths.length - 1)], userId);
-  check(exploreRes, { 'competitions explored': (r) => r.status === 200 });
+    // Anonymous preview
+    const previewRes = get("/competitions/preview?page=1", userId);
+    check(previewRes, { "competitions preview": (r) => r.status === 200 });
 
-  sleep(0.2);
+    sleep(0.2);
 
-  // Submit application to a compatible competition (type must match or be 'any')
-  const myType = PARTICIPANT_TYPES[idx % PARTICIPANT_TYPES.length];
-  const eligible = competitions.filter(c => c.participant_type === 'any' || c.participant_type === myType);
-  if (eligible.length === 0) { sleep(1); return; }
-  const comp = eligible[randomIntBetween(0, eligible.length - 1)];
-  const appDomains = comp.domains.slice(0, randomIntBetween(1, comp.domains.length));
-  // form_data must be null when competition has no form; must match exact fields when it does
-  const formData = comp.has_form
-    ? { motivation: 'I want to build something great', experience_years: 3, role: 'backend' }
-    : null;
-  const appRes = post(`/competitions/${comp.id}/applications/`, {
-    domains: appDomains,
-    form_data: formData,
-  }, userId);
-  check(appRes, { 'application submitted': (r) => r.status === 200 || r.status === 409 || r.status === 403 });
+    // Browse tags
+    const tagsRes = get("/tags/?page=1", userId);
+    check(tagsRes, { "tags listed": (r) => r.status === 200 });
 
-  sleep(0.2);
+    sleep(0.2);
 
-  // View own profile
-  const profileRes = get('/users/me', userId);
-  check(profileRes, { 'profile loaded': (r) => r.status === 200 });
+    // Explore competitions with various filters
+    const explorePaths = [
+        "/competitions/explore?sort_by=most_popular&page=1",
+        "/competitions/explore?sort_by=newest&page=1",
+        "/competitions/explore?sort_by=most_popular&min_team_size=1&max_team_size=4",
+        "/competitions/explore?sort_by=most_popular&auto_accept=true",
+        "/competitions/explore?sort_by=newest&search=K6",
+    ];
+    const exploreRes = get(
+        explorePaths[randomIntBetween(0, explorePaths.length - 1)],
+        userId,
+    );
+    check(exploreRes, { "competitions explored": (r) => r.status === 200 });
 
-  sleep(0.2);
+    sleep(0.2);
 
-  // List own applications — exercise sort + status filter variants
-  const myAppsPaths = [
-    '/applications/?sort_by=created_at&sort_order=desc',
-    '/applications/?sort_by=created_at&sort_order=asc',
-    '/applications/?status=pending',
-    '/applications/?status=accepted',
-    '/applications/?status=rejected',
-  ];
-  const myAppsRes = get(myAppsPaths[randomIntBetween(0, myAppsPaths.length - 1)], userId);
-  check(myAppsRes, { 'my applications listed': (r) => r.status === 200 });
+    // Find eligible competitions (ACTIVE only + compatible type)
+    const myType = PARTICIPANT_TYPES[idx % PARTICIPANT_TYPES.length];
+    const eligible = competitions.filter(
+        (c) =>
+            !c.is_archived &&
+            (c.participant_type === "any" || c.participant_type === myType),
+    );
 
-  // Occasionally withdraw a pending application
-  if (appRes.status === 200 && Math.random() < 0.15) {
-    sleep(0.3);
-    const appId = JSON.parse(appRes.body).application_id;
-    const withdrawRes = del(`/applications/${appId}/`, userId);
-    check(withdrawRes, { 'application withdrawn': (r) => r.status === 200 || r.status === 204 || r.status === 409 || r.status === 422 });
-  }
+    if (eligible.length === 0) {
+        sleep(1);
+        return;
+    }
 
-  sleep(randomIntBetween(1, 2));
+    const comp = eligible[randomIntBetween(0, eligible.length - 1)];
+    const track = comp.tracks[randomIntBetween(0, comp.tracks.length - 1)];
+
+    // Read competition for submission
+    const compReadRes = get(`/competitions/explore/${comp.id}`, userId);
+    check(compReadRes, { "competition read": (r) => r.status === 200 });
+
+    sleep(0.2);
+
+    // Read application form ONLY if competition has one
+    if (comp.has_form) {
+        const formRes = get(
+            `/competitions/${comp.id}/applications/form/`,
+            userId,
+        );
+        check(formRes, {
+            "form read": (r) => r.status === 200 || r.status === 404,
+        });
+    }
+
+    sleep(0.2);
+
+    // Submit application
+    const formData = comp.has_form
+        ? {
+              motivation: "I want to build something great",
+              experience_years: 3,
+              role: "backend",
+          }
+        : null;
+
+    const appRes = post(
+        `/competitions/${comp.id}/applications/`,
+        {
+            track: { name: track.name },
+            form_data: formData,
+        },
+        userId,
+    );
+    check(appRes, {
+        "application submitted": (r) =>
+            r.status === 200 ||
+            r.status === 409 ||
+            r.status === 403 ||
+            r.status === 422,
+    });
+
+    sleep(0.2);
+
+    // View profile
+    const profileRes = get("/users/me", userId);
+    check(profileRes, { "profile loaded": (r) => r.status === 200 });
+
+    sleep(0.2);
+
+    // List my applications with various filters
+    const myAppsPaths = [
+        "/applications/?sort_by=created_at&sort_order=desc",
+        "/applications/?sort_by=created_at&sort_order=asc",
+        "/applications/?status=pending",
+        "/applications/?status=accepted",
+        "/applications/?status=rejected",
+    ];
+    const myAppsRes = get(
+        myAppsPaths[randomIntBetween(0, myAppsPaths.length - 1)],
+        userId,
+    );
+    check(myAppsRes, { "my applications listed": (r) => r.status === 200 });
+
+    // Read my application if submitted
+    if (appRes.status === 200 && Math.random() < 0.3) {
+        try {
+            const appId = JSON.parse(appRes.body).application_id;
+            const readMyAppRes = get(`/applications/${appId}/my/`, userId);
+            check(readMyAppRes, {
+                "my application read": (r) => r.status === 200,
+            });
+        } catch (e) {
+            // JSON parse failed, skip
+        }
+    }
+
+    // Withdraw application occasionally
+    if (appRes.status === 200 && Math.random() < 0.15) {
+        sleep(0.3);
+        try {
+            const appId = JSON.parse(appRes.body).application_id;
+            const withdrawRes = del(`/applications/${appId}/`, userId);
+            check(withdrawRes, {
+                "application withdrawn": (r) =>
+                    r.status === 200 ||
+                    r.status === 204 ||
+                    r.status === 409 ||
+                    r.status === 422,
+            });
+        } catch (e) {
+            // JSON parse failed, skip
+        }
+    }
+
+    // Delete profile occasionally
+    if (Math.random() < 0.05) {
+        const deleteRes = del("/users/me", userId);
+        check(deleteRes, {
+            "profile deleted": (r) => r.status === 200 || r.status === 204,
+        });
+        return;
+    }
+
+    sleep(randomIntBetween(1, 2));
 }
 
 export function organizerFlow(data) {
-  const { competitions } = data;
-  if (!competitions || competitions.length === 0) return;
+    const { competitions } = data;
+    if (!competitions || competitions.length === 0) return;
 
-  const comp = competitions[__VU % competitions.length];
+    const comp = competitions[__VU % competitions.length];
 
-  // List applications for this competition — exercise sort + status filter variants
-  const organizerListPaths = [
-    `/competitions/${comp.id}/applications/?sort_by=created_at&sort_order=desc`,
-    `/competitions/${comp.id}/applications/?sort_by=created_at&sort_order=asc`,
-    `/competitions/${comp.id}/applications/?status=pending`,
-    `/competitions/${comp.id}/applications/?status=accepted`,
-    `/competitions/${comp.id}/applications/?status=rejected`,
-  ];
-  const listRes = get(organizerListPaths[randomIntBetween(0, organizerListPaths.length - 1)], comp.organizer_id);
-  check(listRes, { 'applications listed': (r) => r.status === 200 });
+    // List competitions
+    const listCompsRes = get(
+        `/competitions/?sort_by=created_at&sort_order=desc`,
+        comp.organizer_id,
+    );
+    check(listCompsRes, { "competitions listed": (r) => r.status === 200 });
 
-  // Always re-read pending applications for accept/reject triage
-  const pendingRes = get(`/competitions/${comp.id}/applications/?status=pending`, comp.organizer_id);
-  if (pendingRes.status === 200) {
-    const items = JSON.parse(pendingRes.body).items || [];
-    for (const app of items.slice(0, 5)) {
-      sleep(0.15);
-      const action = Math.random() > 0.3 ? 'accept' : 'reject';
-      const actionRes = post(`/applications/${app.id}/${action}/`, null, comp.organizer_id);
-      check(actionRes, { [`app ${action}ed`]: (r) => r.status === 200 || r.status === 204 || r.status === 409 || r.status === 422 });
+    sleep(0.3);
+
+    // Read competition
+    const readCompRes = get(`/competitions/${comp.id}`, comp.organizer_id);
+    check(readCompRes, { "competition read": (r) => r.status === 200 });
+
+    sleep(0.3);
+
+    // List applications with various filters
+    const organizerListPaths = [
+        `/competitions/${comp.id}/applications/?sort_by=created_at&sort_order=desc`,
+        `/competitions/${comp.id}/applications/?sort_by=created_at&sort_order=asc`,
+        `/competitions/${comp.id}/applications/?status=pending`,
+        `/competitions/${comp.id}/applications/?status=accepted`,
+        `/competitions/${comp.id}/applications/?status=rejected`,
+        `/competitions/${comp.id}/applications/?page_size=10&page=1`,
+    ];
+    const listRes = get(
+        organizerListPaths[randomIntBetween(0, organizerListPaths.length - 1)],
+        comp.organizer_id,
+    );
+    check(listRes, { "applications listed": (r) => r.status === 200 });
+
+    // Accept/reject pending applications
+    const pendingRes = get(
+        `/competitions/${comp.id}/applications/?status=pending`,
+        comp.organizer_id,
+    );
+    if (pendingRes.status === 200) {
+        try {
+            const items = JSON.parse(pendingRes.body).items || [];
+            for (const app of items.slice(0, 5)) {
+                sleep(0.15);
+                const action = Math.random() > 0.3 ? "accept" : "reject";
+                const actionRes = post(
+                    `/applications/${app.id}/${action}/`,
+                    null,
+                    comp.organizer_id,
+                );
+                check(actionRes, {
+                    [`app ${action}ed`]: (r) =>
+                        r.status === 200 ||
+                        r.status === 204 ||
+                        r.status === 409 ||
+                        r.status === 422,
+                });
+            }
+        } catch (e) {
+            // JSON parse failed, skip
+        }
     }
-  }
 
-  sleep(0.3);
+    sleep(0.3);
 
-  // Read application form (for competitions that have one)
-  const formRes = get(`/competitions/${comp.id}/application-form/`, comp.organizer_id);
-  check(formRes, { 'form read or missing': (r) => r.status === 200 || r.status === 404 });
+    // Read application form if exists
+    if (comp.has_form) {
+        const formRes = get(
+            `/competitions/${comp.id}/application-form/`,
+            comp.organizer_id,
+        );
+        check(formRes, {
+            "form read": (r) => r.status === 200 || r.status === 404,
+        });
+    }
 
-  sleep(randomIntBetween(1, 3));
+    sleep(0.3);
+
+    // Update organizer profile (30% chance)
+    if (Math.random() < 0.3) {
+        const updateOrgRes = put(
+            "/users/me/organizer",
+            {
+                organizer_name: `Updated Org ${Date.now().toString(36)}`,
+                contact_email: `updated_org_${Date.now().toString(36)}@test.com`,
+            },
+            comp.organizer_id,
+        );
+        check(updateOrgRes, { "organizer updated": (r) => r.status === 200 });
+    }
+
+    sleep(0.3);
+
+    // Reschedule competition (20% chance)
+    if (Math.random() < 0.2) {
+        const rescheduleRes = patch(
+            `/competitions/${comp.id}/schedule`,
+            {
+                schedule: {
+                    registration_start: futureDate(2),
+                    registration_end: futureDate(35),
+                },
+                team_size: { min: 1, max: 5 },
+            },
+            comp.organizer_id,
+        );
+        check(rescheduleRes, {
+            "competition rescheduled": (r) => r.status === 200,
+        });
+    }
+
+    // Delete application form (10% chance, only if exists)
+    if (comp.has_form && Math.random() < 0.1) {
+        const deleteFormRes = del(
+            `/competitions/${comp.id}/application-form/`,
+            comp.organizer_id,
+        );
+        if (deleteFormRes.status === 200 || deleteFormRes.status === 204) {
+            comp.has_form = false;
+        }
+        check(deleteFormRes, {
+            "form deleted": (r) => r.status === 200 || r.status === 204,
+        });
+    }
+
+    // Archive competition (10% chance)
+    if (Math.random() < 0.1 && !comp.is_archived) {
+        const archiveRes = patch(
+            `/competitions/${comp.id}/archive-status`,
+            { is_archived: true },
+            comp.organizer_id,
+        );
+        if (archiveRes.status === 200) {
+            comp.is_archived = true;
+        }
+        check(archiveRes, { "competition archived": (r) => r.status === 200 });
+    }
+
+    sleep(randomIntBetween(1, 3));
+}
+
+export function teardown(data) {
+    console.log("=== TEARDOWN ===");
+    console.log(`Total competitions in data: ${data.competitions.length}`);
 }
