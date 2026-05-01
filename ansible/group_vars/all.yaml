@@ -30,6 +30,7 @@ deploy_repo_revision: HEAD
 
 # Always bootstrap production ArgoCD Applications.
 bootstrap_apps_path: apps/prod
+bootstrap_root_app_path: apps/prod-root.yaml
 
 # Production public hosts. Replace before running against a real VDS cluster.
 app_host: dreamteams.luba.skin

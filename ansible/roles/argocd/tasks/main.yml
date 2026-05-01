@@ -133,6 +133,28 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
+- name: Render production root ArgoCD application manifest
+  ansible.builtin.copy:
+    dest: /tmp/dreamteams-prod-root-app.yaml
+    mode: '0600'
+    content: >-
+      {{
+        lookup('ansible.builtin.file', playbook_dir ~ '/../' ~ bootstrap_root_app_path)
+        | replace('git@github.com:lubaskinc0de/dreamteams-deploy.git', deploy_repo)
+        | replace('targetRevision: HEAD', 'targetRevision: ' ~ deploy_repo_revision)
+      }}
+
+- name: Apply production root ArgoCD application
+  ansible.builtin.command:
+    cmd: kubectl apply -f /tmp/dreamteams-prod-root-app.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Remove rendered production root ArgoCD application manifest
+  ansible.builtin.file:
+    path: /tmp/dreamteams-prod-root-app.yaml
+    state: absent
+
 - name: Remove rendered ArgoCD application manifests
   ansible.builtin.file:
     path: /tmp/dreamteams-prod-apps

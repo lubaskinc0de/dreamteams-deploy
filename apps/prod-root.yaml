@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dreamteams-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:lubaskinc0de/dreamteams-deploy.git
+    targetRevision: HEAD
+    path: apps/prod
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - PruneLast=true
+      - SkipDryRunOnMissingResource=true
