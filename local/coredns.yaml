@@ -7,5 +7,5 @@ data:
   dreamteams-localhost.override: |
     rewrite stop name exact dreamteams.localhost traefik.kube-system.svc.cluster.local
     rewrite stop name exact s3.dreamteams.localhost traefik.kube-system.svc.cluster.local
-    rewrite stop name exact auth.dreamteams.localhost dreamteams-authentik-server.authentik.svc.cluster.local
+    rewrite stop name exact auth.dreamteams.localhost traefik.kube-system.svc.cluster.local
     rewrite stop name exact grafana.dreamteams.localhost traefik.kube-system.svc.cluster.local

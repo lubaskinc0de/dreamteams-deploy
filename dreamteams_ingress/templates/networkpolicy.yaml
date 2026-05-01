@@ -280,20 +280,6 @@ spec:
         - protocol: TCP
           port: 443
     - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.services.authentik.namespace | quote }}
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: authentik
-              app.kubernetes.io/instance: dreamteams-authentik
-              app.kubernetes.io/component: server
-      ports:
-        - protocol: TCP
-          port: 443
-        - protocol: TCP
-          port: 9443
-    - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:
