@@ -133,9 +133,12 @@ prod-fetch-cert-ssh host output="/tmp/prod-cert.pem":
     if [ -n "${ANSIBLE_PRIVATE_KEY_FILE:-}" ]; then
       ssh_args+=("-i" "$ANSIBLE_PRIVATE_KEY_FILE")
     fi
+    tmp="$(mktemp)"
     ssh "${ssh_args[@]}" deploy@{{host}} \
-      "kubectl get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key=active -o jsonpath='{.items[0].data.tls\\.crt}'" \
-      | base64 -d > "{{output}}"
+      "if [ -r /home/deploy/.kube/config ]; then KUBECONFIG=/home/deploy/.kube/config kubectl get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key=active -o jsonpath='{.items[0].data.tls\\.crt}'; else sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key=active -o jsonpath='{.items[0].data.tls\\.crt}'; fi" \
+      | base64 -d > "$tmp"
+    grep -q -- "-----BEGIN CERTIFICATE-----" "$tmp"
+    mv "$tmp" "{{output}}"
     echo "Cert saved to {{output}}"
 
 # Fetch prod cluster cert for sealing prod secrets
