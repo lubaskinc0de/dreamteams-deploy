@@ -1,6 +1,6 @@
 dreamteamsOidc:
   enabled: true
-  redirectUri: https://dreamteams.example.com/oauth2/callback
+  redirectUri: https://dreamteams.luba.skin/oauth2/callback
 
 authentik:
   blueprints:

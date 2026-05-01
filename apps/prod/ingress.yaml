@@ -18,17 +18,17 @@ spec:
         - name: issuerName
           value: dreamteams-prod
         - name: appHost
-          value: dreamteams.example.com
+          value: dreamteams.luba.skin
         - name: authHost
-          value: auth.dreamteams.example.com
+          value: auth.dreamteams.luba.skin
         - name: grafanaHost
-          value: grafana.dreamteams.example.com
+          value: grafana.dreamteams.luba.skin
         - name: s3Host
-          value: s3.dreamteams.example.com
+          value: s3.dreamteams.luba.skin
         - name: logout.endSessionUrl
-          value: https://auth.dreamteams.example.com/application/o/dreamteams/end-session/
+          value: https://auth.dreamteams.luba.skin/application/o/dreamteams/end-session/
         - name: logout.postLogoutRedirectUrl
-          value: https://dreamteams.example.com/
+          value: https://dreamteams.luba.skin/
         - name: apiDocsAccess.enabled
           value: "true"
         - name: securityHeaders.stsSeconds

@@ -16,7 +16,7 @@ spec:
         - values.yaml
       parameters:
         - name: runtimeConfig.apiBase
-          value: https://dreamteams.example.com
+          value: https://dreamteams.luba.skin
   destination:
     server: https://kubernetes.default.svc
     namespace: dreamteams

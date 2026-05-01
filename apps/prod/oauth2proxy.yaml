@@ -33,12 +33,12 @@ spec:
             pass_access_token=true
             insecure_oidc_allow_unverified_email=true
             provider="oidc"
-            redirect_url="https://dreamteams.example.com/oauth2/callback"
-            oidc_issuer_url="https://auth.dreamteams.example.com/application/o/dreamteams/"
+            redirect_url="https://dreamteams.luba.skin/oauth2/callback"
+            oidc_issuer_url="https://auth.dreamteams.luba.skin/application/o/dreamteams/"
             scope="openid email profile offline_access"
             code_challenge_method="S256"
             email_domains="*"
-            whitelist_domains=["auth.dreamteams.example.com","dreamteams.example.com"]
+            whitelist_domains=["auth.dreamteams.luba.skin","dreamteams.luba.skin"]
             cookie_refresh="4m"
             cookie_expire="720h"
             cookie_csrf_per_request=true
@@ -46,6 +46,11 @@ spec:
             skip_auth_routes=[
                 "/api/competitions/preview"
             ]
+        - name: oauth2-proxy.extraInitContainers[0].command[2]
+          value: |
+            until wget -q -T 5 -O /dev/null --no-check-certificate https://auth.dreamteams.luba.skin/application/o/dreamteams/.well-known/openid-configuration; do
+              sleep 2
+            done
   destination:
     server: https://kubernetes.default.svc
     namespace: dreamteams
