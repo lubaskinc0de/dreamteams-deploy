@@ -5,6 +5,8 @@ metadata:
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    dreamteams.io/stream-name: {{ .Values.stream.name | quote }}
+    dreamteams.io/stream-max-age: {{ .Values.stream.maxAge | quote }}
   labels:
     app.kubernetes.io/name: dreamteams-nats-stream
     app.kubernetes.io/instance: {{ .Release.Name }}
