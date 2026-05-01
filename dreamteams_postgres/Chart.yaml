@@ -7,5 +7,5 @@ appVersion: "17"
                                                                                               
 dependencies:                                                                                
   - name: postgresql                                                                         
-    version: "~18.5.5"                                                                         
-    repository: https://charts.bitnami.com/bitnami
+    version: "18.5.5"
+    repository: oci://registry-1.docker.io/bitnamicharts

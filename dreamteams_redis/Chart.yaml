@@ -7,5 +7,5 @@ appVersion: "7.0"
 
 dependencies:
   - name: redis
-    version: "~25.3.2"
-    repository: https://charts.bitnami.com/bitnami
+    version: "25.3.2"
+    repository: oci://registry-1.docker.io/bitnamicharts
