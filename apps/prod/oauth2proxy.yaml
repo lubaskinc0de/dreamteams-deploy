@@ -14,43 +14,7 @@ spec:
     helm:
       valueFiles:
         - values.yaml
-      parameters:
-        - name: oauth2-proxy.config.configFile
-          value: |
-            upstreams=["static://202"]
-            reverse_proxy=true
-            cookie_httponly=true
-            cookie_secure=true
-            request_logging=true
-            auth_logging=true
-            standard_logging=true
-            session_store_type="redis"
-            redis_connection_url="redis://dreamteams-redis-master:6379/2"
-            skip_provider_button=true
-            set_xauthrequest=true
-            set_authorization_header=true
-            pass_authorization_header=true
-            pass_access_token=true
-            insecure_oidc_allow_unverified_email=true
-            provider="oidc"
-            redirect_url="https://dreamteams.luba.skin/oauth2/callback"
-            oidc_issuer_url="https://auth.dreamteams.luba.skin/application/o/dreamteams/"
-            scope="openid email profile offline_access"
-            code_challenge_method="S256"
-            email_domains="*"
-            whitelist_domains=["auth.dreamteams.luba.skin","dreamteams.luba.skin"]
-            cookie_refresh="4m"
-            cookie_expire="720h"
-            cookie_csrf_per_request=true
-            force_json_errors=true
-            skip_auth_routes=[
-                "/api/competitions/preview"
-            ]
-        - name: oauth2-proxy.extraInitContainers[0].command[2]
-          value: |
-            until wget -q -T 5 -O /dev/null --no-check-certificate https://auth.dreamteams.luba.skin/application/o/dreamteams/.well-known/openid-configuration; do
-              sleep 2
-            done
+        - values-prod.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: dreamteams
