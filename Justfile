@@ -112,7 +112,7 @@ prod-argocd-tunnel host local_port="8080" remote_port="8080":
     echo "Opening ArgoCD UI tunnel: https://localhost:{{local_port}}"
     echo "Stop it with Ctrl+C."
     ssh "${ssh_args[@]}" -L 127.0.0.1:{{local_port}}:127.0.0.1:{{remote_port}} deploy@{{host}} \
-      'kubectl -n {{argocd_namespace}} port-forward svc/argocd-server {{remote_port}}:443 --address 127.0.0.1'
+      'KUBECONFIG=/home/deploy/.kube/config kubectl -n {{argocd_namespace}} port-forward svc/argocd-server {{remote_port}}:443 --address 127.0.0.1'
 
 # Print production ArgoCD admin password over SSH. Usage: just prod-argocd-password 203.0.113.10
 prod-argocd-password host:
@@ -123,7 +123,7 @@ prod-argocd-password host:
       ssh_args+=("-i" "$ANSIBLE_PRIVATE_KEY_FILE")
     fi
     ssh "${ssh_args[@]}" deploy@{{host}} \
-      "kubectl get secret argocd-initial-admin-secret -n {{argocd_namespace}} -o jsonpath='{.data.password}' | base64 -d && echo"
+      "KUBECONFIG=/home/deploy/.kube/config kubectl get secret argocd-initial-admin-secret -n {{argocd_namespace}} -o jsonpath='{.data.password}' | base64 -d && echo"
 
 # Fetch prod SealedSecrets public cert over SSH. Usage: just prod-fetch-cert-ssh 203.0.113.10
 prod-fetch-cert-ssh host output="/tmp/prod-cert.pem":
