@@ -3,4 +3,4 @@ name: dreamteams-frontend
 description: DreamTeams static Nuxt frontend
 type: application
 version: 0.1.0
-appVersion: "v0.0.12"
+appVersion: "v0.0.13"
