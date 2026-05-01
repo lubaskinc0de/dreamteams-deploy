@@ -1,6 +1,8 @@
 - name: Preflight checks
   hosts: localhost
   gather_facts: false
+  vars_files: &production_vault_files
+    - group_vars/secrets.yml
   tasks:
     - name: Validate k3s topology
       ansible.builtin.assert:
@@ -74,6 +76,7 @@
 - name: Setup cluster nodes
   hosts: k3s_cluster
   become: true
+  vars_files: *production_vault_files
   roles:
     - vds_setup
   post_tasks:
@@ -92,6 +95,7 @@
 - name: Lock down cluster firewall
   hosts: k3s_cluster
   become: true
+  vars_files: *production_vault_files
   roles:
     - firewall_lockdown
 
@@ -99,11 +103,13 @@
 - name: Bootstrap applications
   hosts: "{{ groups['server'][0] }}"
   become: true
+  vars_files: *production_vault_files
   roles:
     - argocd
 
 - name: Apply final node hardening
   hosts: k3s_cluster
   become: true
+  vars_files: *production_vault_files
   roles:
     - post_bootstrap_hardening

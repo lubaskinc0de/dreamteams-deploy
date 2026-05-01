@@ -1,6 +1,3 @@
-# k3s version matching the currently observed local cluster.
-k3s_version: "v1.34.5+k3s1"
-
 # ArgoCD Helm chart / CLI versions matching the currently observed cluster.
 argocd_chart_version: "9.5.9"
 argocd_cli_version: "v3.3.8"
@@ -35,7 +32,7 @@ deploy_repo_revision: HEAD
 bootstrap_apps_path: apps/prod
 
 # Production public hosts. Replace before running against a real VDS cluster.
-app_host: dreamteams.example.com
+app_host: dreamteams.luba.skin
 auth_host: "auth.{{ app_host }}"
 s3_host: "s3.{{ app_host }}"
 grafana_host: "grafana.{{ app_host }}"

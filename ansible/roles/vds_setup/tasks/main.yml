@@ -3,7 +3,10 @@
 - name: Update and upgrade packages                                                          
   ansible.builtin.apt:
     update_cache: yes
+    update_cache_retries: 5
+    update_cache_retry_max_delay: 30
     upgrade: dist
+    lock_timeout: 600
 
 # Install tools we need: curl/ca-certificates for downloads,
 # git for cloning repos, ufw for firewall, htop for monitoring.
@@ -19,6 +22,7 @@
       - python3-systemd
       - unattended-upgrades
     state: present
+    lock_timeout: 600
 
 # Create a non-root user that will own and manage the cluster.
 # Using root for day-to-day operations is bad practice.

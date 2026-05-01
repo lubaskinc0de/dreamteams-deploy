@@ -20,7 +20,7 @@ prod-apply:
 
 # Install Ansible collections used by the production bootstrap.
 ansible-install:
-    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ANSIBLE_GALAXY_CACHE_DIR=/tmp/ansible-galaxy-cache ansible-galaxy collection install -r ansible/requirements.yml -p .ansible/collections
+    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_GALAXY_CACHE_DIR=/tmp/ansible-galaxy-cache ansible-galaxy collection install -r ansible/requirements.yml -p .ansible/collections
 
 # Record a production host SSH key only when it matches the provider fingerprint.
 prod-known-host host fingerprint:
@@ -37,19 +37,19 @@ prod-known-host host fingerprint:
 
 # Bootstrap a production k3s cluster from ansible/inventory/hosts.yml.
 prod-bootstrap:
-    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ansible-playbook ansible/site.yml --ask-vault-pass
+    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ansible-playbook ansible/site.yml --ask-vault-pass
 
 # First bootstrap when the provider only gave a root SSH password.
 prod-bootstrap-password:
-    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ansible-playbook ansible/site.yml --ask-pass --ask-vault-pass
+    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ansible-playbook ansible/site.yml --ask-pass --ask-vault-pass
 
 # First infrastructure run before prod SealedSecrets exist.
 prod-bootstrap-infra:
-    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ansible-playbook ansible/site.yml --ask-vault-pass -e '{"prod_required_secret_names":[]}'
+    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ansible-playbook ansible/site.yml --ask-vault-pass -e '{"prod_required_secret_names":[]}'
 
 # First infrastructure run by root SSH password before prod SealedSecrets exist.
 prod-bootstrap-infra-password:
-    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ANSIBLE_REMOTE_TEMP=/tmp/.ansible-tmp ansible-playbook ansible/site.yml --ask-pass --ask-vault-pass -e '{"prod_required_secret_names":[]}'
+    ANSIBLE_LOCAL_TEMP=/tmp/ansible-local ansible-playbook ansible/site.yml --ask-pass --ask-vault-pass -e '{"prod_required_secret_names":[]}'
 
 # Re-login to ArgoCD (token expires after 24h)
 argocd-login:

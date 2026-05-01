@@ -157,6 +157,7 @@
   ansible.builtin.apt:
     name: just
     state: present
+    lock_timeout: 600
   when:
     - just_package_policy.rc == 0
     - "'Candidate: (none)' not in just_package_policy.stdout"
