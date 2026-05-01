@@ -59,6 +59,8 @@ spec:
           port: 8001
         - protocol: TCP
           port: 9000
+        - protocol: TCP
+          port: 8089
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
