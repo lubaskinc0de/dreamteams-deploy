@@ -81,7 +81,7 @@ networkPolicy:
 rateLimits:
   enabled: true
   redis:
-    enabled: false
+    enabled: true
     endpoints:
       - dreamteams-redis-master.dreamteams.svc.cluster.local:6379
     db: 4
@@ -90,50 +90,50 @@ rateLimits:
     writeTimeout: 1s
     poolSize: 20
   frontend:
-    average: 1800
-    burst: 300
+    average: 300
+    burst: 60
     period: 1m
   oauth2:
-    average: 300
-    burst: 100
+    average: 60
+    burst: 20
     period: 1m
   publicPreview:
-    average: 300
-    burst: 100
+    average: 60
+    burst: 20
     period: 1m
   apiDefault:
-    average: 600
-    burst: 120
+    average: 120
+    burst: 30
     period: 1m
   apiWrite:
+    average: 30
+    burst: 10
+    period: 1m
+  identityWrite:
+    average: 10
+    burst: 5
+    period: 1m
+  avatarUpload:
+    average: 6
+    burst: 3
+    period: 1m
+  exportCreate:
+    average: 10
+    burst: 3
+    period: 1m
+  exportPoll:
+    average: 60
+    burst: 20
+    period: 1m
+  s3:
     average: 120
     burst: 40
     period: 1m
-  identityWrite:
-    average: 30
-    burst: 10
-    period: 1m
-  avatarUpload:
-    average: 12
-    burst: 6
-    period: 1m
-  exportCreate:
-    average: 30
-    burst: 10
-    period: 1m
-  exportPoll:
-    average: 300
-    burst: 100
-    period: 1m
-  s3:
-    average: 600
-    burst: 200
-    period: 1m
   authentik:
-    average: 300
-    burst: 100
+    average: 60
+    burst: 20
     period: 1m
   grafana:
-    average: 120
-    burst: 60
+    average: 60
+    burst: 20
     period: 1m
