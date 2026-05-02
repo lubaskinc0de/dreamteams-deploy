@@ -66,6 +66,9 @@ policy:
     - name: robots-txt
       path_regex: ^/robots\.txt$
       action: ALLOW
+    - name: api-requires-anubis
+      path_regex: ^/api(?:/.*)?$
+      action: CHALLENGE
     - import: (data)/meta/default-config.yaml
   store:
     backend: memory
