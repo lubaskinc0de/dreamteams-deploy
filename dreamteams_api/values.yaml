@@ -59,7 +59,7 @@ startupProbe:
     path: /internal/alive
     port: http
   periodSeconds: 5
-  failureThreshold: 24
+  failureThreshold: 72
 
 analysis:
   initialDelay: 10s
