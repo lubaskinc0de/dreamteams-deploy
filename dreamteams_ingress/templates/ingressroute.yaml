@@ -74,8 +74,6 @@ spec:
       priority: 1
       {{- if or .Values.securityHeaders.enabled .Values.rateLimits.enabled }}
       middlewares:
-        - name: public-client-ip-headers
-          namespace: dreamteams
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: frontend-ratelimit
