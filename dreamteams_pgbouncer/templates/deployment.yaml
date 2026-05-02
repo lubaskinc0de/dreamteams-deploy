@@ -39,6 +39,36 @@ spec:
                 echo "Waiting for postgres..."
                 sleep 2
               done
+        - name: render-admin-userlist
+          image: busybox:1.37
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+          env:
+            - name: PGBOUNCER_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret }}
+                  key: {{ .Values.secret.adminUserKey }}
+            - name: PGBOUNCER_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret }}
+                  key: {{ .Values.secret.adminPasswordKey }}
+          command:
+            - sh
+            - -ec
+            - |
+              umask 077
+              printf '"%s" "%s"\n' "$PGBOUNCER_ADMIN_USER" "$PGBOUNCER_ADMIN_PASSWORD" > /etc/pgbouncer/userlist.txt
+          volumeMounts:
+            - name: pgbouncer-config
+              mountPath: /etc/pgbouncer
       containers:
         - name: pgbouncer
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -64,6 +94,16 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secret.existingSecret }}
                   key: {{ .Values.secret.passwordKey }}
+            - name: ADMIN_USERS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret }}
+                  key: {{ .Values.secret.adminUserKey }}
+            - name: STATS_USERS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret }}
+                  key: {{ .Values.secret.adminUserKey }}
             - name: POOL_MODE
               value: {{ .Values.pool.mode | quote }}
             - name: MAX_CLIENT_CONN
@@ -102,6 +142,12 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          volumeMounts:
+            - name: pgbouncer-config
+              mountPath: /etc/pgbouncer
+      volumes:
+        - name: pgbouncer-config
+          emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

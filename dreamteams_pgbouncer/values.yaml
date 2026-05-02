@@ -27,6 +27,8 @@ secret:
   existingSecret: dreamteams-pgbouncer-secret
   userKey: DB_USER
   passwordKey: DB_PASSWORD
+  adminUserKey: PGBOUNCER_ADMIN_USER
+  adminPasswordKey: PGBOUNCER_ADMIN_PASSWORD
 
 pool:
   mode: transaction
