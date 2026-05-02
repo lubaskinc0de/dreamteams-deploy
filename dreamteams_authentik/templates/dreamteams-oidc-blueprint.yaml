@@ -59,9 +59,6 @@ data:
           pretend_user_exists: false
           enable_remember_me: true
           password_stage: !KeyOf dreamteams-authentication-password
-          {{- if .Values.dreamteamsOidc.captcha.enabled }}
-          captcha_stage: !KeyOf dreamteams-captcha
-          {{- end }}
       - model: authentik_stages_user_login.userloginstage
         id: dreamteams-authentication-login
         identifiers:
@@ -252,6 +249,14 @@ data:
           enabled: true
           timeout: 30
           failure_result: false
+      {{- end }}
+      {{- if .Values.dreamteamsOidc.captcha.enabled }}
+      - model: authentik_flows.flowstagebinding
+        id: dreamteams-authentication-captcha-binding
+        identifiers:
+          target: !KeyOf dreamteams-authentication-flow
+          stage: !KeyOf dreamteams-captcha
+          order: 5
       {{- end }}
       - model: authentik_flows.flowstagebinding
         identifiers:
