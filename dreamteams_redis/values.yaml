@@ -19,7 +19,7 @@ redis:
     allowExternalEgress: false
   master:
     persistence:
-      size: 1Gi
+      size: 256Mi
     resources:
       requests:
         cpu: 50m
