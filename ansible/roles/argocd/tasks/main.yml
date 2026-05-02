@@ -51,6 +51,10 @@
       {{
         {
           'configs': {
+            'cm': {
+              'timeout.reconciliation': '60s',
+              'timeout.reconciliation.jitter': '10s'
+            },
             'ssh': {'extraHosts': argocd_ssh_known_hosts},
             'rbac': {'policy.csv': 'g, admin, role:admin'}
           }

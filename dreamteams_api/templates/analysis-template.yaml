@@ -7,23 +7,23 @@ metadata:
 spec:
   metrics:
     - name: http-5xx-rate
-      initialDelay: 60s
-      interval: 30s
-      count: 10
-      failureLimit: 1
-      successCondition: result[0] < 5
-      failureCondition: result[0] >= 5
+      initialDelay: {{ .Values.analysis.initialDelay | quote }}
+      interval: {{ .Values.analysis.interval | quote }}
+      count: {{ .Values.analysis.count }}
+      failureLimit: {{ .Values.analysis.failureLimit }}
+      successCondition: {{ .Values.analysis.successCondition | quote }}
+      failureCondition: {{ .Values.analysis.failureCondition | quote }}
       provider:
         prometheus:
           address: http://prometheus.observability:9090
           query: |
             (
-              ((sum(increase(http_server_duration_milliseconds_count{service_name="dreamteams"}[5m])) or vector(0)) >= bool 20)
+              ((sum(increase(http_server_duration_milliseconds_count{service_name="dreamteams"}[{{ .Values.analysis.queryWindow }}])) or vector(0)) >= bool {{ .Values.analysis.minimumRequests }})
               *
               (
-                ((sum(rate(http_server_duration_milliseconds_count{service_name="dreamteams", http_status_code=~"5.."}[5m])) or vector(0))
+                ((sum(rate(http_server_duration_milliseconds_count{service_name="dreamteams", http_status_code=~"5.."}[{{ .Values.analysis.queryWindow }}])) or vector(0))
                 /
-                clamp_min((sum(rate(http_server_duration_milliseconds_count{service_name="dreamteams"}[5m])) or vector(0)), 0.001))
+                clamp_min((sum(rate(http_server_duration_milliseconds_count{service_name="dreamteams"}[{{ .Values.analysis.queryWindow }}])) or vector(0)), 0.001))
                 * 100
               )
             )

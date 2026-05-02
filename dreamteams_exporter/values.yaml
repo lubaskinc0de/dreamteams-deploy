@@ -47,6 +47,16 @@ api:
       cpu: 750m
       memory: 512Mi
 
+analysis:
+  initialDelay: 10s
+  interval: 10s
+  count: 6
+  failureLimit: 1
+  successCondition: result[0] < 5
+  failureCondition: result[0] >= 5
+  minimumRequests: 20
+  queryWindow: 1m
+
 worker:
   replicaCount: 1
   command:
