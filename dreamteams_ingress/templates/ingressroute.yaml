@@ -99,7 +99,7 @@ spec:
     secretName: {{ .Values.tls.appSecretName }}
   {{- end }}
   routes:
-    - match: Host(`{{ .Values.apexHost }}`)
+    - match: Host(`{{ .Values.apexHost }}`) && !PathPrefix(`/.well-known/acme-challenge/`)
       kind: Rule
       priority: 300
       middlewares:
@@ -120,7 +120,7 @@ spec:
     - web
   routes:
     {{- if and .Values.apexRedirect.enabled .Values.apexHost }}
-    - match: Host(`{{ .Values.apexHost }}`)
+    - match: Host(`{{ .Values.apexHost }}`) && !PathPrefix(`/.well-known/acme-challenge/`)
       kind: Rule
       priority: 300
       middlewares:
@@ -130,7 +130,7 @@ spec:
         - name: {{ .Values.services.frontend.name }}
           port: {{ .Values.services.frontend.port }}
     {{- end }}
-    - match: Host(`{{ .Values.appHost }}`) || Host(`{{ .Values.authHost }}`) || Host(`{{ .Values.s3Host }}`) || Host(`{{ .Values.grafanaHost }}`)
+    - match: (Host(`{{ .Values.appHost }}`) || Host(`{{ .Values.authHost }}`) || Host(`{{ .Values.s3Host }}`) || Host(`{{ .Values.grafanaHost }}`)) && !PathPrefix(`/.well-known/acme-challenge/`)
       kind: Rule
       priority: 1
       middlewares:
