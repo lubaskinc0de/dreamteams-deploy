@@ -32,12 +32,12 @@ secret:
 
 pool:
   mode: transaction
-  maxClientConn: "100"
-  defaultPoolSize: "25"
-  reservePoolSize: "5"
+  maxClientConn: "1000"
+  defaultPoolSize: "200"
+  reservePoolSize: "20"
   reservePoolTimeout: "3"
   serverLifetime: "3600"
-  serverIdleTimeout: "300"
+  serverIdleTimeout: "600"
   maxPreparedStatements: "100"
 
 resources:

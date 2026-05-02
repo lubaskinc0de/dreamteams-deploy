@@ -13,35 +13,47 @@ postgresql:
     initdb:
       scriptsSecret: dreamteams-postgres-initdb
     extendedConfiguration: |
-      max_connections = 80
-      shared_buffers = 256MB
-      effective_cache_size = 1536MB
-      work_mem = 2MB
-      maintenance_work_mem = 64MB
-      wal_buffers = 16MB
-      min_wal_size = 128MB
-      max_wal_size = 768MB
-      checkpoint_timeout = 10min
+      max_connections = 300
+      shared_buffers = 2GB
+      effective_cache_size = 6GB
+      work_mem = 8MB
+      maintenance_work_mem = 512MB
+      wal_buffers = 32MB
+      min_wal_size = 1GB
+      max_wal_size = 4GB
+      checkpoint_timeout = 15min
       checkpoint_completion_target = 0.9
-      effective_io_concurrency = 100
+      synchronous_commit = on
       random_page_cost = 1.1
-      temp_file_limit = 256MB
+      effective_io_concurrency = 200
+      default_statistics_target = 100
+      max_worker_processes = 4
+      max_parallel_workers = 4
+      max_parallel_workers_per_gather = 2
+      max_parallel_maintenance_workers = 2
       statement_timeout = 30s
       idle_in_transaction_session_timeout = 60s
       lock_timeout = 5s
       track_io_timing = on
+      track_functions = pl
       jit = off
-      log_min_duration_statement = 500ms
+      log_min_duration_statement = 200ms
+      log_lock_waits = on
+      log_temp_files = 0
+      log_checkpoints = on
+      log_autovacuum_min_duration = 1s
+      autovacuum = on
+      autovacuum_naptime = 30s
       timezone = 'UTC'
     persistence:
       size: 1Gi
     resources:
       requests:
-        cpu: 100m
-        memory: 512Mi
+        cpu: 500m
+        memory: 2Gi
       limits:
-        cpu: 1000m
-        memory: 1Gi
+        cpu: 2500m
+        memory: 4Gi
     networkPolicy:
       allowExternal: false
       allowExternalEgress: false

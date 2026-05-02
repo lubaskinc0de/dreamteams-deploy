@@ -4,18 +4,28 @@ redis:
     digest: sha256:23289a4f4765da46419590fb80d8803363b07e5783ef45396ff85c641db81a0e
   auth:
     enabled: false
+  commonConfiguration: |-
+    appendonly yes
+    appendfsync everysec
+    save ""
+    maxmemory 192mb
+    maxmemory-policy allkeys-lfu
+    maxmemory-samples 10
+    lazyfree-lazy-eviction yes
+    lazyfree-lazy-expire yes
+    tcp-keepalive 300
   networkPolicy:
     allowExternal: false
     allowExternalEgress: false
   master:
     persistence:
-      size: 256Mi
+      size: 1Gi
     resources:
       requests:
-        cpu: 25m
-        memory: 64Mi
+        cpu: 50m
+        memory: 128Mi
       limits:
-        cpu: 250m
-        memory: 192Mi
+        cpu: 500m
+        memory: 320Mi
   replica:
     replicaCount: 0
