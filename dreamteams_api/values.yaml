@@ -54,6 +54,12 @@ readinessProbe:
   httpGet:
     path: /internal/ready
     port: http
+startupProbe:
+  httpGet:
+    path: /internal/alive
+    port: http
+  periodSeconds: 5
+  failureThreshold: 24
 
 analysis:
   initialDelay: 10s
