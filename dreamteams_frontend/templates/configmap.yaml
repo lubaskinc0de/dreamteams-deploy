@@ -16,3 +16,7 @@ data:
       apiRetryBaseDelay: {{ .Values.runtimeConfig.apiRetryBaseDelay }},
       apiRetryMaxDelay: {{ .Values.runtimeConfig.apiRetryMaxDelay }},
     };
+  {{- range $name, $content := .Values.staticFiles }}
+  {{ $name }}: |
+    {{- $content | nindent 4 }}
+  {{- end }}

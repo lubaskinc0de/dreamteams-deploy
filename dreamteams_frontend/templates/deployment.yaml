@@ -67,6 +67,12 @@ spec:
               mountPath: /usr/share/nginx/html/config.js
               subPath: config.js
               readOnly: true
+            {{- range $name, $_ := .Values.staticFiles }}
+            - name: nginx-config
+              mountPath: {{ printf "/usr/share/nginx/html/%s" $name | quote }}
+              subPath: {{ $name | quote }}
+              readOnly: true
+            {{- end }}
             - name: nginx-cache
               mountPath: /var/cache/nginx
             - name: nginx-run

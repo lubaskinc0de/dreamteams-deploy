@@ -100,6 +100,12 @@ spec:
     secretName: {{ .Values.tls.appSecretName }}
   {{- end }}
   routes:
+    - match: Host(`{{ .Values.apexHost }}`) && (Path(`/mailru-domainpSXTX491bRhF02Pt.html`) || Path(`/mailru-domainpSXTX491bRhF02Pt(1).html`))
+      kind: Rule
+      priority: 400
+      services:
+        - name: {{ .Values.services.frontend.name }}
+          port: {{ .Values.services.frontend.port }}
     - match: Host(`{{ .Values.apexHost }}`) && !PathPrefix(`/.well-known/acme-challenge/`)
       kind: Rule
       priority: 300
@@ -121,6 +127,12 @@ spec:
     - web
   routes:
     {{- if and .Values.apexRedirect.enabled .Values.apexHost }}
+    - match: Host(`{{ .Values.apexHost }}`) && (Path(`/mailru-domainpSXTX491bRhF02Pt.html`) || Path(`/mailru-domainpSXTX491bRhF02Pt(1).html`))
+      kind: Rule
+      priority: 400
+      services:
+        - name: {{ .Values.services.frontend.name }}
+          port: {{ .Values.services.frontend.port }}
     - match: Host(`{{ .Values.apexHost }}`) && !PathPrefix(`/.well-known/acme-challenge/`)
       kind: Rule
       priority: 300
