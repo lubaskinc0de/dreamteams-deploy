@@ -13,6 +13,18 @@ if (!SUPERUSER_PASSWORD) {
 export const options = {
     setupTimeout: "120s",
     scenarios: {
+        // preview_stress: {
+        //     executor: "ramping-vus",
+        //     startVUs: 0,
+        //     stages: [
+        //         { duration: "30s", target: 100 },
+        //         { duration: "2m", target: 200 },
+        //         { duration: "3m", target: 300 },
+        //         { duration: "2m", target: 200 },
+        //         { duration: "30s", target: 0 },
+        //     ],
+        //     exec: "previewFlow", // <-- функция которая будет выполняться
+        // },
         participants: {
             executor: "ramping-vus",
             startVUs: 0,
@@ -191,7 +203,7 @@ export function setup() {
     console.log(`Tags created: ${tagIds.length}`);
 
     const competitions = [];
-    const NUM_ORGANIZERS = 50;
+    const NUM_ORGANIZERS = 20;
     const COMPS_PER_ORG = 10;
     let createdComps = 0;
     let activatedComps = 0;
@@ -392,12 +404,6 @@ export function participantFlow(data) {
         );
         check(updateRes, { "participant updated": (r) => r.status === 200 });
     }
-
-    sleep(0.2);
-
-    // Anonymous preview
-    const previewRes = get("/competitions/preview?page=1", userId);
-    check(previewRes, { "competitions preview": (r) => r.status === 200 });
 
     sleep(0.2);
 
@@ -694,4 +700,15 @@ export function organizerFlow(data) {
 export function teardown(data) {
     console.log("=== TEARDOWN ===");
     console.log(`Total competitions in data: ${data.competitions.length}`);
+}
+
+export function previewFlow() {
+    const page = randomIntBetween(1, 50);
+    const response = http.get(`${BASE_URL}/competitions/preview?page=${page}`);
+
+    check(response, {
+        "preview status 200": (r) => r.status === 200,
+    });
+
+    sleep(randomIntBetween(0.1, 0.5));
 }

@@ -21,9 +21,31 @@ spec:
     {{- end }}
 {{- end }}
 
+{{- define "dreamteams_ingress.longRateLimitMiddleware" }}
+{{- $cfg := .root.Values.rateLimits.longWindow }}
+{{- if $cfg.enabled }}
+{{- $limit := dict "average" (mul (int .limit.average) (int $cfg.averageMultiplier)) "burst" (mul (int .limit.burst) (int $cfg.burstMultiplier)) "period" $cfg.period }}
+{{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" .root "name" (printf "%s-%s" .name $cfg.suffix) "namespace" .namespace "limit" $limit) }}
+{{- end }}
+{{- end }}
+
+{{- define "dreamteams_ingress.longRateLimitRef" -}}
+{{- if .root.Values.rateLimits.longWindow.enabled }}
+- name: {{ printf "%s-%s" .name .root.Values.rateLimits.longWindow.suffix }}
+  namespace: {{ .namespace }}
+{{- end }}
+{{- end }}
+
 {{- define "dreamteams_ingress.securityHeadersRef" -}}
 {{- if .Values.securityHeaders.enabled }}
 - name: security-headers
+  namespace: dreamteams
+{{- end }}
+{{- end }}
+
+{{- define "dreamteams_ingress.anubisApiAuthRef" -}}
+{{- if .Values.anubisApiAuth.enabled }}
+- name: anubis-api-auth
   namespace: dreamteams
 {{- end }}
 {{- end }}

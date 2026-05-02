@@ -12,6 +12,12 @@ logs:
   access:
     enabled: false
 
+plugins:
+  simpleCache:
+    enabled: true
+    moduleName: github.com/traefik/plugin-simplecache
+    version: v0.2.1
+
 ports:
   anubis:
     enabled: true

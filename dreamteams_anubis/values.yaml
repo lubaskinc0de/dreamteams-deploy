@@ -51,6 +51,7 @@ config:
   serveRobotsTxt: false
   useSimplifiedExplanation: true
   webmasterEmail: ""
+  jwtRestrictionHeader: X-Real-IP
 
 policy:
   bots:
@@ -66,9 +67,9 @@ policy:
     - name: robots-txt
       path_regex: ^/robots\.txt$
       action: ALLOW
-    - name: api-requires-anubis
+    - name: api-json
       path_regex: ^/api(?:/.*)?$
-      action: CHALLENGE
+      action: ALLOW
     - import: (data)/meta/default-config.yaml
   store:
     backend: memory

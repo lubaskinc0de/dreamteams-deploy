@@ -65,6 +65,18 @@ avatarUpload:
     maxRequestBodyBytes: 5242880
     memRequestBodyBytes: 1048576
 
+publicPreviewCache:
+  enabled: true
+  pluginName: simplecache
+  path: /tmp
+  maxExpiry: 60
+  cleanup: 300
+  addStatusHeader: true
+
+anubisApiAuth:
+  enabled: true
+  maxResponseBodySize: 1024
+
 forwardAuth:
   maxResponseBodySize: 1048576
 
@@ -86,6 +98,14 @@ networkPolicy:
 
 rateLimits:
   enabled: true
+  sourceCriterion:
+    requestHeaderName: X-Real-IP
+  longWindow:
+    enabled: true
+    suffix: 10m
+    period: 10m
+    averageMultiplier: 10
+    burstMultiplier: 2
   redis:
     enabled: true
     endpoints:

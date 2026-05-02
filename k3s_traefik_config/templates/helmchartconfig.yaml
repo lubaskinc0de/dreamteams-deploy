@@ -13,6 +13,13 @@ spec:
     logs:
       access:
         enabled: {{ .Values.logs.access.enabled }}
+    {{- if .Values.plugins.simpleCache.enabled }}
+    experimental:
+      plugins:
+        simplecache:
+          moduleName: {{ .Values.plugins.simpleCache.moduleName | quote }}
+          version: {{ .Values.plugins.simpleCache.version | quote }}
+    {{- end }}
     {{- if .Values.ports.anubis.enabled }}
     additionalArguments:
       - "--entrypoints.anubis.address=:{{ .Values.ports.anubis.port }}"

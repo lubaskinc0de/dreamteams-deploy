@@ -74,6 +74,8 @@ spec:
       priority: 1
       {{- if or .Values.securityHeaders.enabled .Values.rateLimits.enabled }}
       middlewares:
+        - name: public-client-ip-headers
+          namespace: dreamteams
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: frontend-ratelimit
@@ -179,6 +181,7 @@ spec:
       priority: 195
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         - name: api-docs-deny
           namespace: dreamteams
       services:
@@ -190,6 +193,7 @@ spec:
       priority: 195
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         - name: api-docs-ipallowlist
           namespace: dreamteams
         - name: oauth-errors
@@ -205,6 +209,7 @@ spec:
       priority: 190
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: export-create-ratelimit
           namespace: dreamteams
@@ -223,6 +228,7 @@ spec:
       priority: 180
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: export-poll-ratelimit
           namespace: dreamteams
@@ -241,6 +247,7 @@ spec:
       priority: 175
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: api-default-ratelimit
           namespace: dreamteams
@@ -259,6 +266,7 @@ spec:
       priority: 170
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: identity-write-ratelimit
           namespace: dreamteams
@@ -275,6 +283,7 @@ spec:
       priority: 170
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: identity-write-ratelimit
           namespace: dreamteams
@@ -291,6 +300,7 @@ spec:
       priority: 170
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: identity-write-ratelimit
           namespace: dreamteams
@@ -307,6 +317,7 @@ spec:
       priority: 170
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: avatar-upload-ratelimit
           namespace: dreamteams
@@ -327,6 +338,7 @@ spec:
       priority: 160
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: api-write-ratelimit
           namespace: dreamteams
@@ -343,14 +355,15 @@ spec:
       priority: 150
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: public-preview-ratelimit
           namespace: dreamteams
         {{- end }}
-        - name: oauth-errors
+        {{- if .Values.publicPreviewCache.enabled }}
+        - name: public-preview-cache
           namespace: dreamteams
-        - name: oauth-auth
-          namespace: dreamteams
+        {{- end }}
       services:
         - name: {{ .Values.services.api.name }}
           port: {{ .Values.services.api.port }}
@@ -359,6 +372,7 @@ spec:
       priority: 100
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.anubisApiAuthRef" . | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: api-default-ratelimit
           namespace: dreamteams
@@ -430,6 +444,8 @@ spec:
       kind: Rule
       {{- if .Values.rateLimits.enabled }}
       middlewares:
+        - name: public-client-ip-headers
+          namespace: dreamteams
         - name: s3-ratelimit
           namespace: dreamteams
       {{- end }}
@@ -454,6 +470,8 @@ spec:
       kind: Rule
       {{- if .Values.rateLimits.enabled }}
       middlewares:
+        - name: public-client-ip-headers
+          namespace: {{ .Values.services.authentik.namespace }}
         - name: authentik-ratelimit
           namespace: {{ .Values.services.authentik.namespace }}
       {{- end }}
@@ -478,6 +496,8 @@ spec:
       kind: Rule
       {{- if .Values.rateLimits.enabled }}
       middlewares:
+        - name: public-client-ip-headers
+          namespace: {{ .Values.services.grafana.namespace }}
         - name: grafana-ratelimit
           namespace: {{ .Values.services.grafana.namespace }}
       {{- end }}

@@ -1,6 +1,42 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  name: public-client-ip-headers
+  namespace: dreamteams
+spec:
+  headers:
+    customRequestHeaders:
+      Forwarded: ""
+      X-Forwarded-For: ""
+      X-Real-IP: ""
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: public-client-ip-headers
+  namespace: {{ .Values.services.authentik.namespace }}
+spec:
+  headers:
+    customRequestHeaders:
+      Forwarded: ""
+      X-Forwarded-For: ""
+      X-Real-IP: ""
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: public-client-ip-headers
+  namespace: {{ .Values.services.grafana.namespace }}
+spec:
+  headers:
+    customRequestHeaders:
+      Forwarded: ""
+      X-Forwarded-For: ""
+      X-Real-IP: ""
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
   name: redirect-to-https
   namespace: dreamteams
 spec:
@@ -91,6 +127,19 @@ spec:
       - X-Auth-Request-Access-Token
       - Authorization
 ---
+{{- if .Values.anubisApiAuth.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: anubis-api-auth
+  namespace: dreamteams
+spec:
+  forwardAuth:
+    address: http://{{ .Values.services.anubis.name }}.dreamteams:{{ .Values.services.anubis.port }}/.within.website/x/cmd/anubis/api/check
+    trustForwardHeader: true
+    maxResponseBodySize: {{ .Values.anubisApiAuth.maxResponseBodySize | int64 }}
+---
+{{- end }}
 {{- if .Values.securityHeaders.enabled }}
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -140,17 +189,44 @@ spec:
     memRequestBodyBytes: {{ . | int64 }}
     {{- end }}
 {{- end }}
+{{- if .Values.publicPreviewCache.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: public-preview-cache
+  namespace: dreamteams
+spec:
+  plugin:
+    {{ .Values.publicPreviewCache.pluginName }}:
+      path: {{ .Values.publicPreviewCache.path | quote }}
+      maxExpiry: {{ .Values.publicPreviewCache.maxExpiry | int }}
+      cleanup: {{ .Values.publicPreviewCache.cleanup | int }}
+      addStatusHeader: {{ .Values.publicPreviewCache.addStatusHeader }}
+{{- end }}
 {{- if .Values.rateLimits.enabled }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "frontend-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.frontend) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "frontend-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.frontend) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "oauth2-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.oauth2) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "oauth2-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.oauth2) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "public-preview-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.publicPreview) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "public-preview-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.publicPreview) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "api-default-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.apiDefault) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "api-default-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.apiDefault) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "api-write-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.apiWrite) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "api-write-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.apiWrite) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "identity-write-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.identityWrite) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "identity-write-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.identityWrite) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "avatar-upload-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.avatarUpload) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "avatar-upload-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.avatarUpload) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "export-create-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.exportCreate) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "export-create-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.exportCreate) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "export-poll-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.exportPoll) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "export-poll-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.exportPoll) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "s3-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.s3) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "s3-ratelimit" "namespace" "dreamteams" "limit" .Values.rateLimits.s3) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "authentik-ratelimit" "namespace" .Values.services.authentik.namespace "limit" .Values.rateLimits.authentik) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "authentik-ratelimit" "namespace" .Values.services.authentik.namespace "limit" .Values.rateLimits.authentik) }}
 {{ include "dreamteams_ingress.rateLimitMiddleware" (dict "root" . "name" "grafana-ratelimit" "namespace" .Values.services.grafana.namespace "limit" .Values.rateLimits.grafana) }}
+{{ include "dreamteams_ingress.longRateLimitMiddleware" (dict "root" . "name" "grafana-ratelimit" "namespace" .Values.services.grafana.namespace "limit" .Values.rateLimits.grafana) }}
 {{- end }}

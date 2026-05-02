@@ -67,6 +67,8 @@ spec:
               value: {{ .Values.config.serveRobotsTxt | quote }}
             - name: USE_SIMPLIFIED_EXPLANATION
               value: {{ .Values.config.useSimplifiedExplanation | quote }}
+            - name: JWT_RESTRICTION_HEADER
+              value: {{ .Values.config.jwtRestrictionHeader | quote }}
             {{- with .Values.config.challengeTitle }}
             - name: CHALLENGE_TITLE
               value: {{ . | quote }}
