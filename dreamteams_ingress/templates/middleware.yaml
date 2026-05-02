@@ -1,6 +1,29 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
+  name: redirect-to-https
+  namespace: dreamteams
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+{{- if and .Values.apexRedirect.enabled .Values.apexHost }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: apex-redirect
+  namespace: dreamteams
+spec:
+  redirectRegex:
+    regex: {{ printf "^https?://%s(/.*)?$" (.Values.apexHost | replace "." "\\.") | quote }}
+    replacement: {{ printf "https://%s${1}" .Values.appHost | quote }}
+    permanent: true
+---
+{{- end }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
   name: exporter-strip-prefix
   namespace: dreamteams
 spec:

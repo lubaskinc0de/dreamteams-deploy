@@ -1,8 +1,32 @@
 dreamteamsOidc:
   enabled: true
   redirectUri: https://dreamteams.luba.skin/oauth2/callback
+  captcha:
+    enabled: true
 
 authentik:
+  worker:
+    env:
+      - name: DREAMTEAMS_OIDC_CLIENT_ID
+        valueFrom:
+          secretKeyRef:
+            name: authentik-env
+            key: DREAMTEAMS_OIDC_CLIENT_ID
+      - name: DREAMTEAMS_OIDC_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: authentik-env
+            key: DREAMTEAMS_OIDC_CLIENT_SECRET
+      - name: DREAMTEAMS_CAPTCHA_PUBLIC_KEY
+        valueFrom:
+          secretKeyRef:
+            name: authentik-env
+            key: DREAMTEAMS_CAPTCHA_PUBLIC_KEY
+      - name: DREAMTEAMS_CAPTCHA_PRIVATE_KEY
+        valueFrom:
+          secretKeyRef:
+            name: authentik-env
+            key: DREAMTEAMS_CAPTCHA_PRIVATE_KEY
   blueprints:
     configMaps:
       - dreamteams-authentik-blueprints

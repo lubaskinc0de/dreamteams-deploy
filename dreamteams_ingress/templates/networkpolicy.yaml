@@ -123,16 +123,6 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: dreamteams-anubis
-              app.kubernetes.io/instance: dreamteams-anubis
-      ports:
-        - protocol: TCP
-          port: 80
-        - protocol: TCP
-          port: 8080
-    - from:
-        - podSelector:
-            matchLabels:
               app.kubernetes.io/name: dreamteams-rustfs-buckets
               app.kubernetes.io/instance: dreamteams-rustfs
       ports:
@@ -352,15 +342,12 @@ spec:
     - Egress
   egress:
     - to:
-        - podSelector:
+        - namespaceSelector:
             matchLabels:
-              app.kubernetes.io/name: dreamteams-frontend
-              app.kubernetes.io/instance: dreamteams-frontend
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: TCP
-          port: 80
-        - protocol: TCP
-          port: 8080
+          port: {{ .Values.anubis.internalPort }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

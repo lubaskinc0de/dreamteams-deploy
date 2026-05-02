@@ -38,7 +38,7 @@ service:
   targetPort: 8080
   metricsPort: 9090
 
-target: http://dreamteams-frontend.dreamteams.svc.cluster.local:80
+target: http://traefik-anubis.kube-system.svc.cluster.local:3923
 
 config:
   challengeTitle: Checking your browser

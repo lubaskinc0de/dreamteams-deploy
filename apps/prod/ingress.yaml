@@ -19,6 +19,10 @@ spec:
           value: dreamteams-prod
         - name: appHost
           value: dreamteams.luba.skin
+        - name: apexHost
+          value: luba.skin
+        - name: apexRedirect.enabled
+          value: "true"
         - name: authHost
           value: auth.dreamteams.luba.skin
         - name: grafanaHost

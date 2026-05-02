@@ -8,6 +8,9 @@ spec:
   secretName: {{ .Values.tls.appSecretName }}
   dnsNames:
     - {{ .Values.appHost }}
+    {{- if and .Values.apexRedirect.enabled .Values.apexHost }}
+    - {{ .Values.apexHost }}
+    {{- end }}
   issuerRef:
     name: {{ .Values.issuerName }}
     kind: ClusterIssuer
@@ -52,6 +55,91 @@ spec:
     kind: ClusterIssuer
 ---
 {{- end }}
+{{- if .Values.anubis.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dreamteams-web-gate
+  namespace: dreamteams
+spec:
+  entryPoints:
+    - websecure
+  {{- if .Values.tls.enabled }}
+  tls:
+    secretName: {{ .Values.tls.appSecretName }}
+  {{- end }}
+  routes:
+    - match: Host(`{{ .Values.appHost }}`)
+      kind: Rule
+      priority: 1
+      {{- if or .Values.securityHeaders.enabled .Values.rateLimits.enabled }}
+      middlewares:
+        {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- if .Values.rateLimits.enabled }}
+        - name: frontend-ratelimit
+          namespace: dreamteams
+        {{- end }}
+      {{- end }}
+      services:
+        - name: {{ .Values.services.anubis.name }}
+          port: {{ .Values.services.anubis.port }}
+---
+{{- end }}
+{{- if and .Values.apexRedirect.enabled .Values.apexHost }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dreamteams-apex-redirect
+  namespace: dreamteams
+spec:
+  entryPoints:
+    - websecure
+  {{- if .Values.tls.enabled }}
+  tls:
+    secretName: {{ .Values.tls.appSecretName }}
+  {{- end }}
+  routes:
+    - match: Host(`{{ .Values.apexHost }}`)
+      kind: Rule
+      priority: 300
+      middlewares:
+        - name: apex-redirect
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.frontend.name }}
+          port: {{ .Values.services.frontend.port }}
+---
+{{- end }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dreamteams-http-redirect
+  namespace: dreamteams
+spec:
+  entryPoints:
+    - web
+  routes:
+    {{- if and .Values.apexRedirect.enabled .Values.apexHost }}
+    - match: Host(`{{ .Values.apexHost }}`)
+      kind: Rule
+      priority: 300
+      middlewares:
+        - name: apex-redirect
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.frontend.name }}
+          port: {{ .Values.services.frontend.port }}
+    {{- end }}
+    - match: Host(`{{ .Values.appHost }}`) || Host(`{{ .Values.authHost }}`) || Host(`{{ .Values.s3Host }}`) || Host(`{{ .Values.grafanaHost }}`)
+      kind: Rule
+      priority: 1
+      middlewares:
+        - name: redirect-to-https
+          namespace: dreamteams
+      services:
+        - name: {{ .Values.services.frontend.name }}
+          port: {{ .Values.services.frontend.port }}
+---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -59,8 +147,12 @@ metadata:
   namespace: dreamteams
 spec:
   entryPoints:
+    {{- if .Values.anubis.enabled }}
+    - {{ .Values.anubis.internalEntryPoint }}
+    {{- else }}
     - websecure
-  {{- if .Values.tls.enabled }}
+    {{- end }}
+  {{- if and .Values.tls.enabled (not .Values.anubis.enabled) }}
   tls:
     secretName: {{ .Values.tls.appSecretName }}
   {{- end }}
@@ -318,13 +410,8 @@ spec:
         {{- end }}
       {{- end }}
       services:
-        {{- if .Values.anubis.enabled }}
-        - name: {{ .Values.services.anubis.name }}
-          port: {{ .Values.services.anubis.port }}
-        {{- else }}
         - name: {{ .Values.services.frontend.name }}
           port: {{ .Values.services.frontend.port }}
-        {{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute

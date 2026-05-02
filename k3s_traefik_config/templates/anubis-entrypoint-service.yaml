@@ -1,0 +1,16 @@
+{{- if .Values.ports.anubis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.ports.anubis.serviceName }}
+  namespace: {{ .Values.traefik.namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- toYaml .Values.ports.anubis.selector | nindent 4 }}
+  ports:
+    - name: anubis
+      port: {{ .Values.ports.anubis.port }}
+      targetPort: {{ .Values.ports.anubis.port }}
+      protocol: TCP
+{{- end }}

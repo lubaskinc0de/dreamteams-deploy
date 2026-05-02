@@ -13,6 +13,10 @@ spec:
     logs:
       access:
         enabled: {{ .Values.logs.access.enabled }}
+    {{- if .Values.ports.anubis.enabled }}
+    additionalArguments:
+      - "--entrypoints.anubis.address=:{{ .Values.ports.anubis.port }}"
+    {{- end }}
     ports:
       web:
         redirectTo:

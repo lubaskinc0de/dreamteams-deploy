@@ -111,6 +111,11 @@ dreamteamsOidc:
     jsUrl: https://js.hcaptcha.com/1/api.js
     apiUrl: https://api.hcaptcha.com/siteverify
     interactive: true
+    reputation:
+      name: dreamteams-captcha-on-low-reputation
+      checkIp: true
+      checkUsername: true
+      threshold: -3
   text:
     authenticationTitle: Вход в DreamTeams
     enrollmentTitle: Создайте аккаунт DreamTeams
