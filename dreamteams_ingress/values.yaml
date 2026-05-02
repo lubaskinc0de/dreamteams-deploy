@@ -73,6 +73,26 @@ publicPreviewCache:
   cleanup: 300
   addStatusHeader: true
 
+compression:
+  enabled: true
+  encodings:
+    - br
+    - gzip
+  minResponseBodyBytes: 1024
+  excludedContentTypes:
+    - application/gzip
+    - application/octet-stream
+    - application/pdf
+    - application/zip
+    - audio/mpeg
+    - image/avif
+    - image/gif
+    - image/jpeg
+    - image/png
+    - image/webp
+    - video/mp4
+    - video/webm
+
 anubisApiAuth:
   enabled: true
   maxResponseBodySize: 1024

@@ -162,6 +162,53 @@ spec:
     {{- end }}
 ---
 {{- end }}
+{{- if .Values.compression.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: response-compression
+  namespace: dreamteams
+spec:
+  compress:
+    encodings:
+      {{- toYaml .Values.compression.encodings | nindent 6 }}
+    minResponseBodyBytes: {{ .Values.compression.minResponseBodyBytes | int }}
+    {{- with .Values.compression.excludedContentTypes }}
+    excludedContentTypes:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: response-compression
+  namespace: {{ .Values.services.authentik.namespace }}
+spec:
+  compress:
+    encodings:
+      {{- toYaml .Values.compression.encodings | nindent 6 }}
+    minResponseBodyBytes: {{ .Values.compression.minResponseBodyBytes | int }}
+    {{- with .Values.compression.excludedContentTypes }}
+    excludedContentTypes:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: response-compression
+  namespace: {{ .Values.services.grafana.namespace }}
+spec:
+  compress:
+    encodings:
+      {{- toYaml .Values.compression.encodings | nindent 6 }}
+    minResponseBodyBytes: {{ .Values.compression.minResponseBodyBytes | int }}
+    {{- with .Values.compression.excludedContentTypes }}
+    excludedContentTypes:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+---
+{{- end }}
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:

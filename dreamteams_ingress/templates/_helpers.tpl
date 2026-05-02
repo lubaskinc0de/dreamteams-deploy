@@ -43,6 +43,13 @@ spec:
 {{- end }}
 {{- end }}
 
+{{- define "dreamteams_ingress.compressionRef" -}}
+{{- if .root.Values.compression.enabled }}
+- name: response-compression
+  namespace: {{ .namespace }}
+{{- end }}
+{{- end }}
+
 {{- define "dreamteams_ingress.anubisApiAuthRef" -}}
 {{- if .Values.anubisApiAuth.enabled }}
 - name: anubis-api-auth

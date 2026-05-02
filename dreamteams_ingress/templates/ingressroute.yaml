@@ -72,9 +72,10 @@ spec:
     - match: Host(`{{ .Values.appHost }}`)
       kind: Rule
       priority: 1
-      {{- if or .Values.securityHeaders.enabled .Values.rateLimits.enabled }}
+      {{- if or .Values.securityHeaders.enabled .Values.rateLimits.enabled .Values.compression.enabled }}
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- include "dreamteams_ingress.compressionRef" (dict "root" . "namespace" "dreamteams") | nindent 8 }}
         {{- if .Values.rateLimits.enabled }}
         - name: frontend-ratelimit
           namespace: dreamteams
@@ -385,9 +386,12 @@ spec:
     - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/oauth2`)
       kind: Rule
       priority: 90
-      {{- if or .Values.securityHeaders.enabled .Values.rateLimits.enabled }}
+      {{- if or .Values.securityHeaders.enabled .Values.rateLimits.enabled .Values.compression.enabled }}
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- if not .Values.anubis.enabled }}
+        {{- include "dreamteams_ingress.compressionRef" (dict "root" . "namespace" "dreamteams") | nindent 8 }}
+        {{- end }}
         {{- if .Values.rateLimits.enabled }}
         - name: oauth2-ratelimit
           namespace: dreamteams
@@ -413,9 +417,12 @@ spec:
     - match: Host(`{{ .Values.appHost }}`)
       kind: Rule
       priority: 1
-      {{- if or .Values.securityHeaders.enabled .Values.rateLimits.enabled }}
+      {{- if or .Values.securityHeaders.enabled .Values.rateLimits.enabled .Values.compression.enabled }}
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- if not .Values.anubis.enabled }}
+        {{- include "dreamteams_ingress.compressionRef" (dict "root" . "namespace" "dreamteams") | nindent 8 }}
+        {{- end }}
         {{- if .Values.rateLimits.enabled }}
         - name: frontend-ratelimit
           namespace: dreamteams
@@ -466,12 +473,15 @@ spec:
   routes:
     - match: Host(`{{ .Values.authHost }}`)
       kind: Rule
-      {{- if .Values.rateLimits.enabled }}
+      {{- if or .Values.rateLimits.enabled .Values.compression.enabled }}
       middlewares:
         - name: public-client-ip-headers
           namespace: {{ .Values.services.authentik.namespace }}
+        {{- include "dreamteams_ingress.compressionRef" (dict "root" . "namespace" .Values.services.authentik.namespace) | nindent 8 }}
+        {{- if .Values.rateLimits.enabled }}
         - name: authentik-ratelimit
           namespace: {{ .Values.services.authentik.namespace }}
+        {{- end }}
       {{- end }}
       services:
         - name: {{ .Values.services.authentik.name }}
@@ -492,12 +502,15 @@ spec:
   routes:
     - match: Host(`{{ .Values.grafanaHost }}`)
       kind: Rule
-      {{- if .Values.rateLimits.enabled }}
+      {{- if or .Values.rateLimits.enabled .Values.compression.enabled }}
       middlewares:
         - name: public-client-ip-headers
           namespace: {{ .Values.services.grafana.namespace }}
+        {{- include "dreamteams_ingress.compressionRef" (dict "root" . "namespace" .Values.services.grafana.namespace) | nindent 8 }}
+        {{- if .Values.rateLimits.enabled }}
         - name: grafana-ratelimit
           namespace: {{ .Values.services.grafana.namespace }}
+        {{- end }}
       {{- end }}
       services:
         - name: {{ .Values.services.grafana.name }}
