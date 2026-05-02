@@ -32,8 +32,6 @@ runtimeConfig:
 staticFiles:
   mailru-domainpSXTX491bRhF02Pt.html: |
     mailru-domain: pSXTX491bRhF02Pt
-  "mailru-domainpSXTX491bRhF02Pt(1).html": |
-    mailru-domain: pSXTX491bRhF02Pt
 
 resources:
   requests:

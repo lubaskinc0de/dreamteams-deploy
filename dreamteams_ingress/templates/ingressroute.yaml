@@ -100,7 +100,7 @@ spec:
     secretName: {{ .Values.tls.appSecretName }}
   {{- end }}
   routes:
-    - match: Host(`{{ .Values.apexHost }}`) && (Path(`/mailru-domainpSXTX491bRhF02Pt.html`) || Path(`/mailru-domainpSXTX491bRhF02Pt(1).html`))
+    - match: Host(`{{ .Values.apexHost }}`) && Path(`/mailru-domainpSXTX491bRhF02Pt.html`)
       kind: Rule
       priority: 400
       services:
@@ -127,7 +127,7 @@ spec:
     - web
   routes:
     {{- if and .Values.apexRedirect.enabled .Values.apexHost }}
-    - match: Host(`{{ .Values.apexHost }}`) && (Path(`/mailru-domainpSXTX491bRhF02Pt.html`) || Path(`/mailru-domainpSXTX491bRhF02Pt(1).html`))
+    - match: Host(`{{ .Values.apexHost }}`) && Path(`/mailru-domainpSXTX491bRhF02Pt.html`)
       kind: Rule
       priority: 400
       services:
