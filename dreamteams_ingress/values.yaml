@@ -94,7 +94,7 @@ compression:
     - video/webm
 
 anubisApiAuth:
-  enabled: true
+  enabled: false
   maxResponseBodySize: 1024
 
 forwardAuth:
