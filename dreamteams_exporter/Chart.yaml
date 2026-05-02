@@ -3,4 +3,4 @@ name: dreamteams-exporter
 description: DreamTeams exporter API and worker
 type: application
 version: 0.1.0
-appVersion: "v0.0.14"
+appVersion: "v0.0.15"
