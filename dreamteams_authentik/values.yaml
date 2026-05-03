@@ -146,6 +146,7 @@ dreamteamsOidc:
   emailVerification:
     friendlyName: Электронная почта
     subject: Код подтверждения DreamTeams
+    template: dreamteams-email-otp.html
     tokenExpiry: minutes=30
   passwordRecovery:
     subject: Код для восстановления доступа к DreamTeams

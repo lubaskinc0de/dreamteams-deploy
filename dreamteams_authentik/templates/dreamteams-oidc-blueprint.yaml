@@ -258,6 +258,7 @@ data:
           friendly_name: {{ .Values.dreamteamsOidc.emailVerification.friendlyName | quote }}
           use_global_settings: true
           subject: {{ .Values.dreamteamsOidc.emailVerification.subject | quote }}
+          template: {{ .Values.dreamteamsOidc.emailVerification.template | quote }}
           token_expiry: {{ .Values.dreamteamsOidc.emailVerification.tokenExpiry | quote }}
       - model: authentik_policies_expression.expressionpolicy
         id: dreamteams-enrollment-activate-user
@@ -281,66 +282,11 @@ data:
         attrs:
           session_duration: seconds=0
       - model: authentik_flows.flowstagebinding
-        state: absent
-        identifiers:
-          target: !KeyOf dreamteams-authentication-flow
-          stage: !KeyOf dreamteams-authentication-login
-          order: 20
-      - model: authentik_flows.flowstagebinding
-        state: absent
-        identifiers:
-          target: !KeyOf dreamteams-authentication-flow
-          stage: !KeyOf dreamteams-authentication-password
-          order: 20
-      - model: authentik_flows.flowstagebinding
         id: dreamteams-authentication-identification-binding
         identifiers:
           target: !KeyOf dreamteams-authentication-flow
           stage: !KeyOf dreamteams-authentication-identification
           order: 10
-      {{- if .Values.dreamteamsOidc.captcha.enabled }}
-      - model: authentik_policies.policybinding
-        state: absent
-        identifiers:
-          target: !KeyOf dreamteams-authentication-identification-binding
-          policy: !KeyOf dreamteams-captcha-reputation-policy
-          order: 10
-        attrs:
-          enabled: true
-          timeout: 30
-          failure_result: false
-          negate: true
-      - model: authentik_flows.flowstagebinding
-        state: absent
-        identifiers:
-          target: !KeyOf dreamteams-authentication-flow
-          stage: !KeyOf dreamteams-captcha
-          order: 15
-      - model: authentik_stages_identification.identificationstage
-        state: absent
-        identifiers:
-          name: {{ printf "%s-authentication-identification-captcha" .Values.dreamteamsOidc.slug | quote }}
-      - model: authentik_flows.flowstagebinding
-        state: absent
-        id: dreamteams-authentication-identification-captcha-binding
-        identifiers:
-          target: !KeyOf dreamteams-authentication-flow
-          stage: !KeyOf dreamteams-authentication-identification-captcha
-          order: 10
-        attrs:
-          evaluate_on_plan: false
-          re_evaluate_policies: true
-      - model: authentik_policies.policybinding
-        state: absent
-        identifiers:
-          target: !KeyOf dreamteams-authentication-identification-captcha-binding
-          policy: !KeyOf dreamteams-captcha-reputation-policy
-          order: 10
-        attrs:
-          enabled: true
-          timeout: 30
-          failure_result: false
-      {{- end }}
       {{- if .Values.dreamteamsOidc.captcha.enabled }}
       - model: authentik_flows.flowstagebinding
         id: dreamteams-authentication-captcha-binding
