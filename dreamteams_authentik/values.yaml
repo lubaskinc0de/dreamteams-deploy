@@ -125,6 +125,7 @@ dreamteamsOidc:
       #flow-drawer .pf-c-drawer__content,
       #flow-drawer .pf-c-drawer__body {
         min-height: 100vh;
+        overflow: visible;
       }
 
       #flow-drawer .pf-c-drawer__body {
@@ -132,14 +133,15 @@ dreamteamsOidc:
         justify-content: center;
         align-items: center;
         padding: clamp(1rem, 4vw, 3rem);
-        overflow-x: hidden;
       }
 
       ak-flow-executor.pf-c-login {
         display: block;
-        width: 100%;
-        max-width: 34rem;
+        width: min(100%, 48rem);
+        min-width: min(100%, 22rem);
+        max-width: none;
         margin-inline: auto;
+        overflow: visible;
       }
 
       ak-flow-executor.pf-c-login[loading],
@@ -157,7 +159,7 @@ dreamteamsOidc:
       ak-stage-captcha .pf-c-form__group,
       .h-captcha {
         width: 100%;
-        max-width: 30rem;
+        max-width: 40rem;
         margin-inline: auto;
       }
 
@@ -167,6 +169,14 @@ dreamteamsOidc:
         display: flex;
         flex-direction: column;
         align-items: center;
+      }
+
+      iframe[src*="hcaptcha.com"] {
+        max-width: min(100vw - 2rem, 44rem) !important;
+      }
+
+      iframe[src*="newassets.hcaptcha.com"] {
+        max-width: min(100vw - 2rem, 44rem) !important;
       }
 
       @media (max-width: 37.5rem) {
@@ -183,6 +193,11 @@ dreamteamsOidc:
         .h-captcha {
           width: 100%;
           max-width: 100%;
+        }
+
+        iframe[src*="hcaptcha.com"],
+        iframe[src*="newassets.hcaptcha.com"] {
+          max-width: calc(100vw - 1rem) !important;
         }
       }
   captcha:
