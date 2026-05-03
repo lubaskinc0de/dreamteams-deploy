@@ -435,6 +435,19 @@ spec:
       services:
         - name: {{ .Values.services.frontend.name }}
           port: {{ .Values.services.frontend.port }}
+    - match: Host(`{{ .Values.appHost }}`) && (Path(`/photos`) || PathPrefix(`/photos/`))
+      kind: Rule
+      priority: 80
+      {{- if or .Values.securityHeaders.enabled .Values.compression.enabled }}
+      middlewares:
+        {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- if not .Values.anubis.enabled }}
+        {{- include "dreamteams_ingress.compressionRef" (dict "root" . "namespace" "dreamteams") | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      services:
+        - name: {{ .Values.services.frontend.name }}
+          port: {{ .Values.services.frontend.port }}
     - match: Host(`{{ .Values.appHost }}`)
       kind: Rule
       priority: 1

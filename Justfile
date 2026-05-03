@@ -109,10 +109,26 @@ prod-argocd-tunnel host local_port="8080" remote_port="8080":
     if [ -n "${ANSIBLE_PRIVATE_KEY_FILE:-}" ]; then
       ssh_args+=("-i" "$ANSIBLE_PRIVATE_KEY_FILE")
     fi
+    remote_cleanup_cmd="pids=\$(ss -H -ltnp 'sport = :{{remote_port}}' 2>/dev/null | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | sort -u); if [ -n \"\$pids\" ]; then kill \$pids 2>/dev/null || true; sleep 1; kill -9 \$pids 2>/dev/null || true; fi; pkill -f '[p]ort-forward svc/argocd-server {{remote_port}}:443' 2>/dev/null || true"
+    cleanup() {
+      ssh "${ssh_args[@]}" deploy@{{host}} "$remote_cleanup_cmd" >/dev/null 2>&1 || true
+    }
+    trap cleanup EXIT INT TERM HUP
+    local_pids="$(lsof -nP -tiTCP:{{local_port}} -sTCP:LISTEN 2>/dev/null || true)"
+    if [ -n "$local_pids" ]; then
+      echo "Cleaning local listener(s) on 127.0.0.1:{{local_port}}: $local_pids"
+      kill $local_pids 2>/dev/null || true
+      sleep 1
+      local_pids="$(lsof -nP -tiTCP:{{local_port}} -sTCP:LISTEN 2>/dev/null || true)"
+      if [ -n "$local_pids" ]; then
+        kill -9 $local_pids 2>/dev/null || true
+      fi
+    fi
+    cleanup
     echo "Opening ArgoCD UI tunnel: https://localhost:{{local_port}}"
     echo "Stop it with Ctrl+C."
     ssh "${ssh_args[@]}" -L 127.0.0.1:{{local_port}}:127.0.0.1:{{remote_port}} deploy@{{host}} \
-      'KUBECONFIG=/home/deploy/.kube/config kubectl -n {{argocd_namespace}} port-forward svc/argocd-server {{remote_port}}:443 --address 127.0.0.1'
+      "cleanup() { $remote_cleanup_cmd; }; trap cleanup EXIT INT TERM HUP; KUBECONFIG=/home/deploy/.kube/config kubectl -n {{argocd_namespace}} port-forward svc/argocd-server {{remote_port}}:443 --address 127.0.0.1"
 
 # Print production ArgoCD admin password over SSH. Usage: just prod-argocd-password 203.0.113.10
 prod-argocd-password host:
