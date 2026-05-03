@@ -178,10 +178,10 @@ data:
           name: {{ printf "%s-recovery-validate-password" .Values.dreamteamsOidc.slug | quote }}
         attrs:
           expression: |
-            prompt_data = request.context.get("prompt_data") or {}
-            user = request.context.get("pending_user")
+            prompt_data = context.get("prompt_data") or {}
+            user = request.user
 
-            if not user:
+            if not user or user.is_anonymous:
                 ak_message({{ .Values.dreamteamsOidc.text.recoveryFailedMessage | quote }})
                 return False
 
