@@ -315,6 +315,7 @@ data:
           stage: !KeyOf dreamteams-recovery-identification
           order: 10
       - model: authentik_flows.flowstagebinding
+        id: dreamteams-recovery-email-validate-binding
         identifiers:
           target: !KeyOf dreamteams-recovery-flow
           stage: !KeyOf dreamteams-recovery-email-validate
