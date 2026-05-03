@@ -120,34 +120,68 @@ dreamteamsOidc:
   redirectUri: https://dreamteams.localhost/oauth2/callback
   brand:
     customCss: |
-      .pf-c-login__container {
-        width: min(100%, 34rem);
+      #flow-drawer,
+      #flow-drawer .pf-c-drawer__main,
+      #flow-drawer .pf-c-drawer__content,
+      #flow-drawer .pf-c-drawer__body {
+        min-height: 100vh;
+      }
+
+      #flow-drawer .pf-c-drawer__body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: clamp(1rem, 4vw, 3rem);
+        overflow-x: hidden;
+      }
+
+      ak-flow-executor.pf-c-login {
+        display: block;
+        width: 100%;
+        max-width: 34rem;
+        margin-inline: auto;
+      }
+
+      ak-flow-executor.pf-c-login[loading],
+      .ak-c-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 18rem;
+        width: 100%;
       }
 
       ak-stage-captcha,
       ak-stage-captcha form,
       ak-stage-captcha .pf-c-form,
-      ak-stage-captcha .pf-c-form__group {
+      ak-stage-captcha .pf-c-form__group,
+      .h-captcha {
         width: 100%;
+        max-width: 30rem;
+        margin-inline: auto;
       }
 
       ak-stage-captcha .pf-c-form,
-      ak-stage-captcha .pf-c-form__group {
+      ak-stage-captcha .pf-c-form__group,
+      .h-captcha {
         display: flex;
         flex-direction: column;
         align-items: center;
       }
 
-      ak-stage-captcha iframe {
-        max-width: min(100%, 30rem);
-      }
-
       @media (max-width: 37.5rem) {
-        .pf-c-login__container {
-          width: 100%;
+        #flow-drawer .pf-c-drawer__body {
+          align-items: flex-start;
+          padding: 1rem;
         }
 
-        ak-stage-captcha iframe {
+        ak-flow-executor.pf-c-login,
+        ak-stage-captcha,
+        ak-stage-captcha form,
+        ak-stage-captcha .pf-c-form,
+        ak-stage-captcha .pf-c-form__group,
+        .h-captcha {
+          width: 100%;
           max-width: 100%;
         }
       }
