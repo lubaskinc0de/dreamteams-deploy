@@ -88,15 +88,6 @@ data:
           js_url: {{ .Values.dreamteamsOidc.captcha.jsUrl | quote }}
           api_url: {{ .Values.dreamteamsOidc.captcha.apiUrl | quote }}
           interactive: {{ .Values.dreamteamsOidc.captcha.interactive }}
-      - model: authentik_policies_reputation.reputationpolicy
-        state: absent
-        id: dreamteams-captcha-reputation-policy
-        identifiers:
-          name: {{ .Values.dreamteamsOidc.captcha.reputation.name | quote }}
-        attrs:
-          check_ip: {{ .Values.dreamteamsOidc.captcha.reputation.checkIp }}
-          check_username: false
-          threshold: {{ .Values.dreamteamsOidc.captcha.reputation.threshold }}
       {{- end }}
       - model: authentik_stages_prompt.prompt
         id: dreamteams-enrollment-email
