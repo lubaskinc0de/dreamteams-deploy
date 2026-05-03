@@ -368,7 +368,6 @@ data:
           flow_invalidation: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
           flow_recovery: !KeyOf dreamteams-recovery-flow
           flow_user_settings: !Find [authentik_flows.flow, [slug, default-user-settings-flow]]
-          branding_custom_css: {{ .Values.dreamteamsOidc.brand.customCss | quote }}
           attributes:
             settings:
               locale: ru
