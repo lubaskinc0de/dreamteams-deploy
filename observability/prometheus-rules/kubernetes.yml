@@ -55,6 +55,46 @@ groups:
                 summary: "Container {{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} is restarting often"
                 description: "The container restarted more than 3 times in 15 minutes."
 
+          - alert: AuthentikContainerMemoryHigh
+            expr: |
+                (
+                  container_memory_working_set_bytes{
+                    namespace="authentik",
+                    container=~"server|worker",
+                    image!=""
+                  }
+                  /
+                  kube_pod_container_resource_limits{
+                    namespace="authentik",
+                    container=~"server|worker",
+                    resource="memory"
+                  }
+                ) > 0.8
+            for: 10m
+            labels:
+                severity: warning
+                team: platform
+            annotations:
+                summary: "Authentik {{ $labels.pod }}/{{ $labels.container }} memory is above 80%"
+                description: "Authentik memory working set has exceeded 80% of the configured container limit for at least 10 minutes."
+
+          - alert: AuthentikContainerOOMKilled
+            expr: |
+                max_over_time(
+                  kube_pod_container_status_last_terminated_reason{
+                    namespace="authentik",
+                    container=~"server|worker",
+                    reason="OOMKilled"
+                  }[15m]
+                ) > 0
+            for: 0m
+            labels:
+                severity: critical
+                team: platform
+            annotations:
+                summary: "Authentik {{ $labels.pod }}/{{ $labels.container }} was OOMKilled"
+                description: "An Authentik server or worker container was terminated because it exceeded its memory limit."
+
           - alert: KubePodPendingTooLong
             expr: kube_pod_status_phase{namespace=~"dreamteams|authentik|observability", phase="Pending"} == 1
             for: 15m

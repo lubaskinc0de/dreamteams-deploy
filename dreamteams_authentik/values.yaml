@@ -31,10 +31,10 @@ authentik:
     resources:
       requests:
         cpu: 100m
-        memory: 384Mi
+        memory: 512Mi
       limits:
         cpu: 1000m
-        memory: 768Mi
+        memory: 1536Mi
 
   worker:
     replicas: 1
@@ -59,10 +59,10 @@ authentik:
     resources:
       requests:
         cpu: 100m
-        memory: 384Mi
+        memory: 512Mi
       limits:
         cpu: 1000m
-        memory: 768Mi
+        memory: 1536Mi
 
   postgresql:
     enabled: true
@@ -118,6 +118,39 @@ dreamteamsOidc:
   clientIdEnv: DREAMTEAMS_OIDC_CLIENT_ID
   clientSecretEnv: DREAMTEAMS_OIDC_CLIENT_SECRET
   redirectUri: https://dreamteams.localhost/oauth2/callback
+  brand:
+    customCss: |
+      .pf-c-login__container {
+        width: min(100%, 34rem);
+      }
+
+      ak-stage-captcha,
+      ak-stage-captcha form,
+      ak-stage-captcha .pf-c-form,
+      ak-stage-captcha .pf-c-form__group {
+        width: 100%;
+      }
+
+      ak-stage-captcha .pf-c-form,
+      ak-stage-captcha .pf-c-form__group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      ak-stage-captcha iframe {
+        max-width: min(100%, 30rem);
+      }
+
+      @media (max-width: 37.5rem) {
+        .pf-c-login__container {
+          width: 100%;
+        }
+
+        ak-stage-captcha iframe {
+          max-width: 100%;
+        }
+      }
   captcha:
     enabled: false
     publicKeyEnv: DREAMTEAMS_CAPTCHA_PUBLIC_KEY
