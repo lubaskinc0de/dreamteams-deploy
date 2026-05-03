@@ -10,23 +10,9 @@ data:
         <td style="padding: 0;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; color: #172033;">
                 <tr>
-                    <td style="padding: 0; border-radius: 18px 18px 0 0; overflow: hidden; background: #172033;">
-                        <img src="https://dreamteams.luba.skin/banner.webp" width="640" alt="DreamTeams" style="display: block; width: 100%; max-width: 640px; height: auto; border: 0;">
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 28px 28px 8px; background: #ffffff;">
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse;">
-                            <tr>
-                                <td style="vertical-align: middle; width: 52px; padding: 0 14px 0 0;">
-                                    <img src="https://dreamteams.luba.skin/logo.png" width="52" height="52" alt="" style="display: block; width: 52px; height: 52px; border: 0; border-radius: 12px;">
-                                </td>
-                                <td style="vertical-align: middle; padding: 0;">
-                                    <div style="font-size: 24px; line-height: 30px; font-weight: 700; color: #111827;">DreamTeams</div>
-                                    <div style="font-size: 13px; line-height: 19px; color: #667085;">Агрегатор IT-хакатонов и платформа для поиска команды</div>
-                                </td>
-                            </tr>
-                        </table>
+                    <td style="padding: 30px 28px 8px; background: #ffffff; border-radius: 18px 18px 0 0;">
+                        <div style="font-size: 24px; line-height: 30px; font-weight: 700; color: #111827;">DreamTeams</div>
+                        <div style="margin-top: 4px; font-size: 13px; line-height: 19px; color: #667085;">Агрегатор IT-хакатонов и платформа для поиска команды</div>
                     </td>
                 </tr>
                 <tr>

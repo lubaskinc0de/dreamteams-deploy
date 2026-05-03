@@ -141,6 +141,17 @@ data:
           template: {{ .Values.dreamteamsOidc.passwordRecovery.template | quote }}
           token_expiry: {{ .Values.dreamteamsOidc.passwordRecovery.tokenExpiry | quote }}
           configure_flow: !KeyOf dreamteams-recovery-flow
+      - model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+        id: dreamteams-recovery-email-validate
+        identifiers:
+          name: {{ printf "%s-recovery-email-validate" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          not_configured_action: configure
+          device_classes:
+            - email
+          configuration_stages:
+            - !KeyOf dreamteams-recovery-email-code
+          last_auth_threshold: seconds=0
       - model: authentik_stages_prompt.prompt
         id: dreamteams-recovery-password
         identifiers:
@@ -306,7 +317,7 @@ data:
       - model: authentik_flows.flowstagebinding
         identifiers:
           target: !KeyOf dreamteams-recovery-flow
-          stage: !KeyOf dreamteams-recovery-email-code
+          stage: !KeyOf dreamteams-recovery-email-validate
           order: 20
       - model: authentik_flows.flowstagebinding
         identifiers:
