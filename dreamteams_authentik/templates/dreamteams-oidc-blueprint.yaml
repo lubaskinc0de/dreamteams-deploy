@@ -38,6 +38,17 @@ data:
           authentication: require_unauthenticated
           layout: stacked
           denied_action: message_continue
+      - model: authentik_flows.flow
+        id: dreamteams-recovery-flow
+        identifiers:
+          slug: {{ printf "%s-recovery" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          name: {{ printf "%s recovery" .Values.dreamteamsOidc.appName | quote }}
+          title: {{ .Values.dreamteamsOidc.text.recoveryTitle | quote }}
+          designation: recovery
+          authentication: require_unauthenticated
+          layout: stacked
+          denied_action: message_continue
       - model: authentik_stages_password.passwordstage
         id: dreamteams-authentication-password
         identifiers:
@@ -54,6 +65,7 @@ data:
           user_fields:
             - email
           enrollment_flow: !KeyOf dreamteams-enrollment-flow
+          recovery_flow: !KeyOf dreamteams-recovery-flow
           case_insensitive_matching: true
           show_matched_user: false
           pretend_user_exists: false
@@ -117,6 +129,85 @@ data:
           type: password
           required: true
           order: 300
+      - model: authentik_stages_identification.identificationstage
+        id: dreamteams-recovery-identification
+        identifiers:
+          name: {{ printf "%s-recovery-identification" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          user_fields:
+            - email
+          case_insensitive_matching: true
+          show_matched_user: false
+          pretend_user_exists: false
+      - model: authentik_stages_authenticator_email.authenticatoremailstage
+        id: dreamteams-recovery-email-code
+        identifiers:
+          name: {{ printf "%s-recovery-email-code" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          friendly_name: {{ .Values.dreamteamsOidc.emailVerification.friendlyName | quote }}
+          use_global_settings: true
+          subject: {{ .Values.dreamteamsOidc.passwordRecovery.subject | quote }}
+          template: {{ .Values.dreamteamsOidc.passwordRecovery.template | quote }}
+          token_expiry: {{ .Values.dreamteamsOidc.passwordRecovery.tokenExpiry | quote }}
+          configure_flow: !KeyOf dreamteams-recovery-flow
+      - model: authentik_stages_prompt.prompt
+        id: dreamteams-recovery-password
+        identifiers:
+          name: {{ printf "%s-recovery-password" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          field_key: password
+          label: {{ .Values.dreamteamsOidc.text.newPasswordLabel | quote }}
+          type: password
+          required: true
+          order: 100
+      - model: authentik_stages_prompt.prompt
+        id: dreamteams-recovery-password-repeat
+        identifiers:
+          name: {{ printf "%s-recovery-password-repeat" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          field_key: password_repeat
+          label: {{ .Values.dreamteamsOidc.text.newPasswordRepeatLabel | quote }}
+          type: password
+          required: true
+          order: 200
+      - model: authentik_policies_expression.expressionpolicy
+        id: dreamteams-recovery-validate-password
+        identifiers:
+          name: {{ printf "%s-recovery-validate-password" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          expression: |
+            prompt_data = request.context.get("prompt_data") or {}
+            user = request.context.get("pending_user")
+
+            if not user:
+                ak_message({{ .Values.dreamteamsOidc.text.recoveryFailedMessage | quote }})
+                return False
+
+            if prompt_data.get("password") != prompt_data.get("password_repeat"):
+                ak_message({{ .Values.dreamteamsOidc.text.passwordMismatchMessage | quote }})
+                return False
+
+            prompt_data.pop("password_repeat", None)
+            request.context["prompt_data"] = prompt_data
+            return True
+      - model: authentik_stages_prompt.promptstage
+        id: dreamteams-recovery-password-prompt
+        identifiers:
+          name: {{ printf "%s-recovery-password-prompt" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          fields:
+            - !KeyOf dreamteams-recovery-password
+            - !KeyOf dreamteams-recovery-password-repeat
+          validation_policies:
+            - !KeyOf dreamteams-recovery-validate-password
+      - model: authentik_stages_user_write.userwritestage
+        id: dreamteams-recovery-user-write
+        identifiers:
+          name: {{ printf "%s-recovery-user-write" .Values.dreamteamsOidc.slug | quote }}
+        attrs:
+          user_creation_mode: never_create
+          create_users_as_inactive: false
+          user_type: internal
       - model: authentik_policies_expression.expressionpolicy
         id: dreamteams-enrollment-normalize-email
         identifiers:
@@ -266,6 +357,33 @@ data:
       {{- if .Values.dreamteamsOidc.captcha.enabled }}
       - model: authentik_flows.flowstagebinding
         identifiers:
+          target: !KeyOf dreamteams-recovery-flow
+          stage: !KeyOf dreamteams-captcha
+          order: 5
+      {{- end }}
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !KeyOf dreamteams-recovery-flow
+          stage: !KeyOf dreamteams-recovery-identification
+          order: 10
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !KeyOf dreamteams-recovery-flow
+          stage: !KeyOf dreamteams-recovery-email-code
+          order: 20
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !KeyOf dreamteams-recovery-flow
+          stage: !KeyOf dreamteams-recovery-password-prompt
+          order: 30
+      - model: authentik_flows.flowstagebinding
+        identifiers:
+          target: !KeyOf dreamteams-recovery-flow
+          stage: !KeyOf dreamteams-recovery-user-write
+          order: 40
+      {{- if .Values.dreamteamsOidc.captcha.enabled }}
+      - model: authentik_flows.flowstagebinding
+        identifiers:
           target: !KeyOf dreamteams-enrollment-flow
           stage: !KeyOf dreamteams-captcha
           order: 5
@@ -311,7 +429,11 @@ data:
           branding_title: {{ .Values.dreamteamsOidc.appName | quote }}
           flow_authentication: !KeyOf dreamteams-authentication-flow
           flow_invalidation: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+          flow_recovery: !KeyOf dreamteams-recovery-flow
           flow_user_settings: !Find [authentik_flows.flow, [slug, default-user-settings-flow]]
+          attributes:
+            settings:
+              locale: ru
       - model: authentik_providers_oauth2.oauth2provider
         id: dreamteams-provider
         identifiers:

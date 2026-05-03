@@ -21,6 +21,13 @@ authentik:
     replicas: 1
     ingress:
       enabled: false
+    volumeMounts:
+      - name: dreamteams-authentik-email-templates
+        mountPath: /templates
+    volumes:
+      - name: dreamteams-authentik-email-templates
+        configMap:
+          name: dreamteams-authentik-email-templates
     resources:
       requests:
         cpu: 100m
@@ -42,6 +49,13 @@ authentik:
           secretKeyRef:
             name: authentik-env
             key: DREAMTEAMS_OIDC_CLIENT_SECRET
+    volumeMounts:
+      - name: dreamteams-authentik-email-templates
+        mountPath: /templates
+    volumes:
+      - name: dreamteams-authentik-email-templates
+        configMap:
+          name: dreamteams-authentik-email-templates
     resources:
       requests:
         cpu: 100m
@@ -119,13 +133,21 @@ dreamteamsOidc:
   text:
     authenticationTitle: Вход в DreamTeams
     enrollmentTitle: Создайте аккаунт DreamTeams
+    recoveryTitle: Восстановление доступа к DreamTeams
     emailLabel: Электронная почта
     emailPlaceholder: email@example.com
     passwordLabel: Пароль
     passwordRepeatLabel: Подтвердите пароль
+    newPasswordLabel: Новый пароль
+    newPasswordRepeatLabel: Подтвердите новый пароль
     invalidEmailMessage: Введите корректный адрес электронной почты.
     passwordMismatchMessage: Пароли не совпадают.
+    recoveryFailedMessage: Не удалось восстановить доступ для этого пользователя.
   emailVerification:
     friendlyName: Электронная почта
     subject: Код подтверждения DreamTeams
+    tokenExpiry: minutes=30
+  passwordRecovery:
+    subject: Код для восстановления доступа к DreamTeams
+    template: dreamteams-email-otp.html
     tokenExpiry: minutes=30
