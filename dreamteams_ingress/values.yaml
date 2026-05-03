@@ -176,8 +176,8 @@ rateLimits:
     burst: 40
     period: 1m
   authentik:
-    average: 60
-    burst: 20
+    average: 300
+    burst: 200
     period: 1m
   grafana:
     average: 300
