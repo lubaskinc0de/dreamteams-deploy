@@ -76,10 +76,6 @@ spec:
       middlewares:
         {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
         {{- include "dreamteams_ingress.compressionRef" (dict "root" . "namespace" "dreamteams") | nindent 8 }}
-        {{- if .Values.rateLimits.enabled }}
-        - name: frontend-ratelimit
-          namespace: dreamteams
-        {{- end }}
       {{- end }}
       services:
         - name: {{ .Values.services.anubis.name }}
@@ -426,6 +422,19 @@ spec:
       services:
         - name: {{ .Values.services.rustfs.name }}
           port: {{ .Values.services.rustfs.port }}
+    - match: Host(`{{ .Values.appHost }}`) && PathPrefix(`/_nuxt/`)
+      kind: Rule
+      priority: 80
+      {{- if or .Values.securityHeaders.enabled .Values.compression.enabled }}
+      middlewares:
+        {{- include "dreamteams_ingress.securityHeadersRef" . | nindent 8 }}
+        {{- if not .Values.anubis.enabled }}
+        {{- include "dreamteams_ingress.compressionRef" (dict "root" . "namespace" "dreamteams") | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      services:
+        - name: {{ .Values.services.frontend.name }}
+          port: {{ .Values.services.frontend.port }}
     - match: Host(`{{ .Values.appHost }}`)
       kind: Rule
       priority: 1
