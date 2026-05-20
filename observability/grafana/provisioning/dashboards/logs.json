@@ -28,7 +28,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\"",
+          "expr": "{container_name=~\"$log_scope\", container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\"",
           "direction": "backward",
           "queryType": "range",
           "refId": "A"
@@ -72,6 +72,19 @@
   "tags": ["dreamteams", "logs"],
   "templating": {
     "list": [
+      {
+        "current": { "text": "Business services", "value": "api|exporter-api|exporter-worker" },
+        "hide": 0,
+        "label": "Scope",
+        "name": "log_scope",
+        "options": [
+          { "selected": true, "text": "Business services", "value": "api|exporter-api|exporter-worker" },
+          { "selected": false, "text": "All containers", "value": ".+" }
+        ],
+        "query": "Business services : api|exporter-api|exporter-worker, All containers : .+",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
       {
         "allValue": ".+",
         "allowCustomValue": false,

@@ -25,8 +25,8 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Total Registrations",
-      "description": "All-time user registrations across all roles",
+      "title": "Registrations in Range",
+      "description": "User registrations across all roles in the selected dashboard time range",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -43,7 +43,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(dreamteams_registrations_total{role=~\"$role\"})",
+          "expr": "sum(increase(dreamteams_registrations_total{role=~\"$role\"}[$__range]))",
           "instant": true,
           "legendFormat": "__auto",
           "refId": "A"

@@ -28,7 +28,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum by(level) (count_over_time({container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__range]))",
+          "expr": "sum by(level) (count_over_time({container_name=~\"$log_scope\", container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__range]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -66,7 +66,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum by(level) (count_over_time({container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__range]))",
+          "expr": "sum by(level) (count_over_time({container_name=~\"$log_scope\", container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__range]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -106,7 +106,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum by(level) (count_over_time({container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__interval]))",
+          "expr": "sum by(level) (count_over_time({container_name=~\"$log_scope\", container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__interval]))",
           "queryType": "range",
           "legendFormat": "{{level}}",
           "refId": "A"
@@ -151,14 +151,14 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum(count_over_time({container_name=~\"$container\", level=\"error\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__interval]))",
+          "expr": "sum(count_over_time({container_name=~\"$log_scope\", container_name=~\"$container\", level=\"error\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__interval]))",
           "queryType": "range",
           "legendFormat": "error",
           "refId": "A"
         },
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum(count_over_time({container_name=~\"$container\", level=\"warning\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__interval]))",
+          "expr": "sum(count_over_time({container_name=~\"$log_scope\", container_name=~\"$container\", level=\"warning\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__interval]))",
           "queryType": "range",
           "legendFormat": "warning",
           "refId": "B"
@@ -197,7 +197,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "topk(20, sum by(logger) (count_over_time({container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__range])))",
+          "expr": "topk(20, sum by(logger) (count_over_time({container_name=~\"$log_scope\", container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\" [$__range])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -227,7 +227,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\"",
+          "expr": "{container_name=~\"$log_scope\", container_name=~\"$container\", level=~\"$level\"} !~ \"/internal/(alive|ready)\" !~ \"otel-collector\\\\.observability:4318\" | json | trace_id=~\"$trace_id\" | user_id=~\"$user_id\" |~ \"(?i)$search\"",
           "direction": "backward",
           "queryType": "range",
           "refId": "A"
@@ -271,6 +271,19 @@
   "tags": ["dreamteams", "logs"],
   "templating": {
     "list": [
+      {
+        "current": { "text": "Business services", "value": "api|exporter-api|exporter-worker" },
+        "hide": 0,
+        "label": "Scope",
+        "name": "log_scope",
+        "options": [
+          { "selected": true, "text": "Business services", "value": "api|exporter-api|exporter-worker" },
+          { "selected": false, "text": "All containers", "value": ".+" }
+        ],
+        "query": "Business services : api|exporter-api|exporter-worker, All containers : .+",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
       {
         "allValue": ".+",
         "allowCustomValue": false,
