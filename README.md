@@ -297,6 +297,24 @@ Shared observability assets:
 
 A Docker Compose observability sandbox is also available for non-K3S local runs.
 
+Provisioned Grafana dashboards cover application latency and traffic, Kubernetes health, logs, traces, and infrastructure signals.
+
+<p align="center">
+  <img width="100%" alt="Grafana application dashboard overview" src="https://github.com/user-attachments/assets/02370bb6-b96f-4a06-9464-099f525a6f72" />
+</p>
+
+<p align="center">
+  <img width="100%" alt="Grafana Kubernetes dashboard overview" src="https://github.com/user-attachments/assets/f1c121e5-f8e4-47cd-9d0c-e7c8a10d2075" />
+</p>
+
+<p align="center">
+  <img width="100%" alt="Grafana logs and traces dashboard overview" src="https://github.com/user-attachments/assets/06987356-4c5f-4506-a146-542205708648" />
+</p>
+
+<p align="center">
+  <img width="100%" alt="Grafana infrastructure dashboard overview" src="https://github.com/user-attachments/assets/3f1d654d-3070-454f-af44-9641f79a7bac" />
+</p>
+
 ## Local K3S
 
 ### Prerequisites
