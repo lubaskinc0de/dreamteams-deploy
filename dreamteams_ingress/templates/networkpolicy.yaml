@@ -95,6 +95,8 @@ spec:
               app.kubernetes.io/instance: dreamteams-exporter
       ports:
         - protocol: TCP
+          port: 5000
+        - protocol: TCP
           port: 6379
         - protocol: TCP
           port: 4222
@@ -208,6 +210,14 @@ spec:
   policyTypes:
     - Egress
   egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dreamteams-api
+              app.kubernetes.io/instance: dreamteams-api
+      ports:
+        - protocol: TCP
+          port: 5000
     - to:
         - podSelector:
             matchLabels:
