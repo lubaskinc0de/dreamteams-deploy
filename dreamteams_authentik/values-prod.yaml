@@ -2,7 +2,7 @@ dreamteamsOidc:
   enabled: true
   redirectUri: https://dreamteams.luba.skin/oauth2/callback
   captcha:
-    enabled: true
+    enabled: false
 
 authentik:
   worker:
